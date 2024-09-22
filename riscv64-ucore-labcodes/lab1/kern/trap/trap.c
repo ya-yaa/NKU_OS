@@ -159,7 +159,7 @@ void exception_handler(struct trapframe *tf) {
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
             */
-            cprintf("exception type:Illegal instruction");
+            cprintf("exception type:Illegal instruction\n");
             cprintf("Illegal instruction address: 0x%016llx\n", tf->epc);
             tf->epc += 4;//跳过导致异常的指令
             break;
@@ -170,7 +170,7 @@ void exception_handler(struct trapframe *tf) {
              *(2)输出异常指令地址
              *(3)更新 tf->epc寄存器
             */
-            cprintf("exception type:breakpoint");
+            cprintf("exception type:breakpoint\n");
             cprintf("Illegal instruction address: 0x%016llx\n", tf->epc);
             tf->epc += 4;//跳过导致异常的指令
             break;
