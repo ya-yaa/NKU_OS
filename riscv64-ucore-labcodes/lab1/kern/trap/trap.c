@@ -172,7 +172,7 @@ void exception_handler(struct trapframe *tf) {
             */
             cprintf("exception type:breakpoint\n");
             cprintf("Illegal instruction address: 0x%016llx\n", tf->epc);
-            tf->epc += 4;//跳过导致异常的指令
+            tf->epc += 2;//跳过导致异常的指令
             break;
         case CAUSE_MISALIGNED_LOAD:
             break;
