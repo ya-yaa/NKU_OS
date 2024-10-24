@@ -13,12 +13,12 @@
 
 // object小块
 struct object {
-	int objsize;  // 供分配的块大小
+	int objsize;  // 供分配的块大小，objsize个OBJ_UNIT的大小
 	struct object *next;  // 下一个块
 };
 typedef struct object obj_t;
 
-#define OBJ_UNIT sizeof(obj_t)  // 小块的总大小
+#define OBJ_UNIT sizeof(obj_t)  // 小块的总大小 16字节
 #define OBJ_UNITS(size) (((size) + OBJ_UNIT - 1)/OBJ_UNIT)  // 转换size为需要的块数，向上取整
 
 // bigblock大块
