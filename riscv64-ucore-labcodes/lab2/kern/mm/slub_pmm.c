@@ -7,10 +7,14 @@
 #include <list.h>
 #include <memlayout.h>
 #include <assert.h>
-#include <kmalloc.h>
-#include <sync.h>
 #include <pmm.h>
 #include <stdio.h>
+#include <slub_pmm.h>
+
+static free_area_t free_area;
+
+#define free_list (free_area.free_list)
+#define nr_free (free_area.nr_free)
 
 // 小块
 struct slob_block {
@@ -124,7 +128,7 @@ static int find_order(int size)
 }
 
 // 总slub分配算法(传入申请的大小)
-static void *slub_alloc(size_t size)
+void *slub_alloc(size_t size)
 {
 	slob_t *m;
 	bigblock_t *bb;
@@ -142,15 +146,18 @@ static void *slub_alloc(size_t size)
 	if (!bb)
 		return 0;
     
-	bb->order = ((size - 1) >> PGSHIFT) + 1;
-	bb->pages = (void *)alloc_pages(bb->order);
+    // 分配大页
+	bb->order = ((size - 1) >> PGSHIFT) + 1;  // PGSHIFT为12，向右移12位的效果相当于除以2^12即4096）
+	bb->pages = (void *)alloc_pages(bb->order);  // 分配2^order个页
 
+    // 分配成功，将其插入到大块链表的头部。
 	if (bb->pages) {
 		bb->next = bigblocks;
 		bigblocks = bb;
 		return bb->pages;
 	}
-
+    
+    // 如果页分配失败，释放之前为bigblock_t结构体分配的内存。返回0。
 	slob_free(bb, sizeof(bigblock_t));
 	return 0;
 }
@@ -158,61 +165,35 @@ static void *slub_alloc(size_t size)
 // 总slub释放算法
 void slub_free(void *block)
 {
+    // bb用于遍历记录大块内存的链表。
+    // last用于指向链表中前一个节点的next指针
 	bigblock_t *bb, **last = &bigblocks;
-	unsigned long flags;
 
 	if (!block)
 		return;
 
-	if (!((unsigned long)block & (PAGE_SIZE-1))) {
+	if (!((unsigned long)block & (PGSIZE-1))) {
 		/* might be on the big block list */
-		spin_lock_irqsave(&block_lock, flags);
 		for (bb = bigblocks; bb; last = &bb->next, bb = bb->next) {
 			if (bb->pages == block) {
 				*last = bb->next;
-				spin_unlock_irqrestore(&block_lock, flags);
-				__slob_free_pages((unsigned long)block, bb->order);
+                // call pmm->free_pages to free a continuous n*PAGESIZE memory
+				free_pages((struct Page *)block, bb->order);
 				slob_free(bb, sizeof(bigblock_t));
 				return;
 			}
 		}
-		spin_unlock_irqrestore(&block_lock, flags);
 	}
 
 	slob_free((slob_t *)block - 1, 0);
 	return;
 }
 
-
-
-
-
-void
-slob_init(void) {
-  cprintf("use SLOB allocator\n");
-}
-
-inline void 
-slub_init(void) {
-    slob_init();
+void slub_init(void) {
     cprintf("slub_init() succeeded!\n");
 }
 
-size_t
-slob_allocated(void) {
-  return 0;
-}
-
-size_t
-kallocated(void) {
-   return slob_allocated();
-}
-
-
-
-
-
-unsigned int ksize(const void *block)
+unsigned int slub_size(const void *block)
 {
 	bigblock_t *bb;
 	unsigned long flags;
@@ -220,18 +201,52 @@ unsigned int ksize(const void *block)
 	if (!block)
 		return 0;
 
-	if (!((unsigned long)block & (PAGE_SIZE-1))) {
-		spin_lock_irqsave(&block_lock, flags);
+	if (!((unsigned long)block & (PGSIZE-1))) {
 		for (bb = bigblocks; bb; bb = bb->next)
 			if (bb->pages == block) {
-				spin_unlock_irqrestore(&slob_lock, flags);
-				return PAGE_SIZE << bb->order;
+				return bb->order << PGSHIFT;
 			}
-		spin_unlock_irqrestore(&block_lock, flags);
 	}
 
 	return ((slob_t *)block - 1)->units * SLOB_UNIT;
 }
 
+int slobfree_len()
+{
+    int len = 0;
+    for(slob_t* curr = slobfree->next; curr != slobfree; curr = curr->next)
+        len ++;
+    return len;
+}
 
 
+void slub_check()
+{
+    cprintf("slub check begin\n");
+    cprintf("slobfree len: %d\n", slobfree_len());
+    void* p1 = slub_alloc(4096);
+    cprintf("slobfree len: %d\n", slobfree_len());
+    void* p2 = slub_alloc(2);
+    void* p3 = slub_alloc(2);
+    cprintf("slobfree len: %d\n", slobfree_len());
+    slub_free(p2);
+    cprintf("slobfree len: %d\n", slobfree_len());
+    slub_free(p3);
+    cprintf("slobfree len: %d\n", slobfree_len());
+    cprintf("slub check end\n");
+}
+
+// static size_t
+// slub_nr_free_pages(void) {
+//     return nr_free;
+// }
+
+// const struct pmm_manager slub_pmm_manager = {
+//     .name = "slub_pmm_manager",
+//     .init = slub_init,
+//     .init_memmap = slub_init,
+//     .alloc_pages = slub_alloc,
+//     .free_pages = slub_free,
+//     .nr_free_pages = slub_nr_free_pages,
+//     .check = slub_check,
+// };

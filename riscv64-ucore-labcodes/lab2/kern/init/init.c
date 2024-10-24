@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <trap.h>
+#include <slub_pmm.h>
 
 int kern_init(void) __attribute__((noreturn));
 void grade_backtrace(void);
@@ -33,7 +34,9 @@ int kern_init(void) {
     clock_init();   // init clock interrupt
     intr_enable();  // enable irq interrupt
 
-
+    // check slub pmm
+    slub_init();
+    slub_check();
 
     /* do nothing */
     while (1)
