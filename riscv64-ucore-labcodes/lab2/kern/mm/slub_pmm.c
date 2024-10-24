@@ -26,13 +26,13 @@ struct bigblock {
 	int order;  // 阶数，说明大小
 	void *pages;  // 这个页的起始地址
 	struct bigblock *next;  // 下个页
+	bool is_bigblock;  // 标识是否为大块
 };
 typedef struct bigblock bigblock_t;
 
 static obj_t arena = { .next = &arena, .objsize = 1 };  // 小块链表头，初始时指向自身。
 static obj_t *objfree = &arena;  // 当前可用的空闲小块链表，初始指向arena。
-static bigblock_t *bigblocks;  // 大页的链表，初始为空。
-
+static bigblock_t *bigblocks_head = NULL;  // 大页的链表头。
 
 // obj块管理部分
 // 将一个size大小的新块加入链表
@@ -144,11 +144,14 @@ void *slub_alloc(size_t size)
     // 分配大页
 	bb->order = ((size - 1) >> PGSHIFT) + 1;  // PGSHIFT为12，向右移12位的效果相当于除以2^12即4096）
 	bb->pages = (void *)alloc_pages(bb->order);  // 分配2^order个页
-
-    // 分配成功，将其插入到大块链表的头部。
+    
+	// 设置大块标志
+    bb->is_bigblock = 1;
+    
+	// 分配成功，将其插入到大块链表的头部。
 	if (bb->pages) {
-		bb->next = bigblocks;
-		bigblocks = bb;
+		bb->next = bigblocks_head;
+		bigblocks_head = bb;
 		return bb->pages;
 	}
     
@@ -162,23 +165,25 @@ void slub_free(void *block)
 {
     // bb用于遍历记录大块内存的链表。
     // last用于指向链表中前一个节点的next指针
-	bigblock_t *bb, **last = &bigblocks;
+	bigblock_t *bb, **last = &bigblocks_head;
 
 	if (!block)
 		return;
 
-	if (!((unsigned long)block & (PGSIZE-1))) {
-		/* might be on the big block list */
-		for (bb = bigblocks; bb; last = &bb->next, bb = bb->next) {
-			if (bb->pages == block) {
-				*last = bb->next;
-                // call pmm->free_pages to free a continuous n*PAGESIZE memory
-				free_pages((struct Page *)block, bb->order);
-				obj_free(bb, sizeof(bigblock_t));
-				return;
-			}
-		}
-	}
+	// 判断是否是大块
+    if (!((unsigned long)block & (PGSIZE - 1))) {
+        /* 遍历大块链表 */
+        for (bb = bigblocks_head; bb != NULL; last = &bb->next, bb = bb->next) {
+            if (bb->pages == block && bb->is_bigblock) {
+                // 确认是大块
+                *last = bb->next;  // 从链表中移除当前节点
+				// call pmm->free_pages to free a continuous n*PAGESIZE memory
+                free_pages((struct Page *)block, bb->order);  // 释放大块页
+                obj_free(bb, sizeof(bigblock_t));  // 释放 bigblock_t 结构体
+                return;
+            }
+        }
+    }
 
 	obj_free((obj_t *)block - 1, 0);
 	return;
@@ -188,45 +193,49 @@ void slub_init(void) {
     cprintf("slub_init() succeeded!\n");
 }
 
-unsigned int slub_size(const void *block)
-{
-	bigblock_t *bb;
-	unsigned long flags;
-
-	if (!block)
-		return 0;
-
-	if (!((unsigned long)block & (PGSIZE-1))) {
-		for (bb = bigblocks; bb; bb = bb->next)
-			if (bb->pages == block) {
-				return bb->order << PGSHIFT;
-			}
-	}
-
-	return ((obj_t *)block - 1)->objsize * OBJ_UNIT;
+// 输出object链表信息
+void print_objs(){
+	int object_count = 0;
+	cprintf("objsizes: ");
+    for(obj_t* curr = objfree->next; curr != objfree; curr = curr->next){
+		cprintf("%d ", curr->objsize);
+		object_count ++;
+	}    
+	cprintf("Total number of objs: %d\n", object_count);
+	cprintf("\n");
 }
 
-int objfree_len()
-{
-    int len = 0;
-    for(obj_t* curr = objfree->next; curr != objfree; curr = curr->next)
-        len ++;
-    return len;
-}
-
-
+    
 void slub_check()
 {
     cprintf("slub check begin\n");
-    cprintf("objfree len: %d\n", objfree_len());
-    void* p1 = slub_alloc(4096);
-    cprintf("objfree len: %d\n", objfree_len());
+    print_objs();
+
+
+    cprintf("alloc test start:\n");
+    // 测试申请
+	cprintf("p1 alloc 4096\n");
+	void* p1 = slub_alloc(4096);
+	print_objs();
+
+	cprintf("p2 alloc 2\n");
     void* p2 = slub_alloc(2);
-    void* p3 = slub_alloc(2);
-    cprintf("objfree len: %d\n", objfree_len());
-    slub_free(p2);
-    cprintf("objfree len: %d\n", objfree_len());
+	print_objs();
+
+	cprintf("p3 alloc 32\n");
+    void* p3 = slub_alloc(32);
+    print_objs();
+
+    
+	cprintf("free test start:\n");
+	// 测试释放
+    cprintf("free p1\n");
+    slub_free(p1);
+    print_objs();
+
+	cprintf("free p3\n");
     slub_free(p3);
-    cprintf("objfree len: %d\n", objfree_len());
+    print_objs();
+
     cprintf("slub check end\n");
 }
