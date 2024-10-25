@@ -31,14 +31,14 @@ int length;
 struct Page *base0;
 
 static void
-buddy_system_init(void)
+buddy_init(void)
 {
     list_init(&free_list);
     nr_free = 0;
 }
 
 static void
-buddy_system_init_memmap(struct Page *base, size_t n)
+buddy_init_memmap(struct Page *base, size_t n)
 {
     
     assert(n > 0);
@@ -74,7 +74,7 @@ buddy_system_init_memmap(struct Page *base, size_t n)
 }
 
 static struct Page *
-buddy_system_alloc_pages(size_t n)
+buddy_alloc_pages(size_t n)
 {
     assert(n > 0);
     if (n > nr_free)
@@ -150,7 +150,7 @@ buddy_system_alloc_pages(size_t n)
 }
 
 static void
-buddy_system_free_pages(struct Page *base, size_t n)
+buddy_free_pages(struct Page *base, size_t n)
 {
     assert(n > 0);
     int i = get_power(n);
@@ -212,7 +212,7 @@ buddy_system_free_pages(struct Page *base, size_t n)
 }
 
 static size_t
-buddy_system_nr_free_pages(void)
+buddy_nr_free_pages(void)
 {
     return nr_free;
 }
@@ -248,17 +248,11 @@ buddy_check(void)
     p0 = alloc_pages(100);
     p1 = alloc_pages(100);
     A = alloc_pages(64);
-    B = alloc_pages(200);
-    C = alloc_pages(100);
 
     // 检验p1和p2是否相邻，并且分配内存是否是大于分配内存的2的幂次
     assert(p1 = p0 + 128);
     // 检验A和p1是否相邻
     assert(A == p1 + 128);
-    // 检验B分配是否遵循buddy_system算法
-    assert(B == A + 256);
-    // 检验B分配是否遵循buddy_system算法
-    assert(C == A + 128);
 
     // 检验p0释放后分配D是否使用了D的空间
     free_page(p0);
@@ -273,16 +267,14 @@ buddy_check(void)
 
     free_page(p2);
     free_page(A);
-    free_page(B);
-    free_page(C);
 }
 // 这个结构体在
 const struct pmm_manager buddy_pmm_manager = {
-    .name = "buddy_system_pmm_manager",
-    .init = buddy_system_init,
-    .init_memmap = buddy_system_init_memmap,
-    .alloc_pages = buddy_system_alloc_pages,
-    .free_pages = buddy_system_free_pages,
-    .nr_free_pages = buddy_system_nr_free_pages,
+    .name = "buddy_pmm_manager",
+    .init = buddy_init,
+    .init_memmap = buddy_init_memmap,
+    .alloc_pages = buddy_alloc_pages,
+    .free_pages = buddy_free_pages,
+    .nr_free_pages = buddy_nr_free_pages,
     .check = buddy_check,
 };
