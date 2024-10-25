@@ -107,7 +107,7 @@ static void *obj_alloc(size_t size)
 				return 0;
 
 			obj_free(cur, PGSIZE);  // 将新分配的页加入到空闲链表中
-			cur = objfree;  // 从新分配的页再次循环
+			cur = objfree;  // 从新分配的页前一个块再次循环
 		}
 	}
 }
@@ -171,17 +171,15 @@ void slub_free(void *block)
 		return;
 
 	// 判断是否是大块
-    if (!((unsigned long)block & (PGSIZE - 1))) {
-        /* 遍历大块链表 */
-        for (bb = bigblocks_head; bb != NULL; last = &bb->next, bb = bb->next) {
-            if (bb->pages == block && bb->is_bigblock) {
-                // 确认是大块
-                *last = bb->next;  // 从链表中移除当前节点
-				// call pmm->free_pages to free a continuous n*PAGESIZE memory
-                free_pages((struct Page *)block, bb->order);  // 释放大块页
-                obj_free(bb, sizeof(bigblock_t));  // 释放 bigblock_t 结构体
-                return;
-            }
+	// 遍历大块链表
+    for (bb = bigblocks_head; bb != NULL; last = &bb->next, bb = bb->next) {
+        if (bb->pages == block && bb->is_bigblock) {
+            // 确认是大块
+            *last = bb->next;  // 从链表中移除当前节点
+			// call pmm->free_pages to free a continuous n*PAGESIZE memory
+            free_pages((struct Page *)block, bb->order);  // 释放大块页
+            obj_free(bb, sizeof(bigblock_t));  // 释放 bigblock_t 结构体
+            return;
         }
     }
 
@@ -197,7 +195,7 @@ void slub_init(void) {
 void print_objs(){
 	int object_count = 0;
 	cprintf("objsizes: ");
-    for(obj_t* curr = objfree->next; curr != objfree; curr = curr->next){
+    for(obj_t* curr = arena.next; curr != &arena; curr = curr->next){
 		cprintf("%d ", curr->objsize);
 		object_count ++;
 	}    

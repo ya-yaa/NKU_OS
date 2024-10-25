@@ -178,7 +178,7 @@ debug: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 		-s -S
 
 gdb:
-	riscv64-unknown-elf-gdb \
+	gdb-multiarch \
     -ex 'file bin/kernel' \
     -ex 'set arch riscv:rv64' \
     -ex 'target remote localhost:1234'
@@ -233,3 +233,16 @@ tags:
 	$(V)find . -type f -name "*.[chS]" >cscope.files
 	$(V)cscope -bq 
 	$(V)ctags -L cscope.files
+	
+test1:
+	$(V)$(QEMU) \
+		-machine virt \
+		-nographic \
+		-bios default \
+		-device loader,file=$(UCOREIMG),addr=0x80200000 \
+		-S -s &
+
+	sleep 1  # 增加短暂的延迟，确保 QEMU 启动并监听端口
+
+	gdb-multiarch \
+		-x init.gdb
