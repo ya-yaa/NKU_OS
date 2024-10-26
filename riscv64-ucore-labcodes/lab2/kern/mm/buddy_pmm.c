@@ -167,26 +167,10 @@ buddy_free_pages(struct Page *base, size_t n)
     //计算偏移量
     unsigned offect = base - base0;
 
-    unsigned node_size = 1;
+    unsigned node_size = size;
 
     //计算索引
     unsigned index = length / 2 + offect - 1;
-    
-    //自底向上查找，直到找到大小等于n的节点
-    while (node_size < n)
-    {
-        node_size *= 2;
-        if (index % 2 == 0)
-        {
-            index = (index - 2) / 2;
-        }
-        else
-        {
-            index = (index - 1) / 2;
-        }
-        if (index == 0)
-            return; 
-    }
 
     buddy[index] = node_size;
 

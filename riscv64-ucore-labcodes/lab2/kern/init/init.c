@@ -35,8 +35,8 @@ int kern_init(void) {
     intr_enable();  // enable irq interrupt
 
     // check slub pmm
-    //slub_init();
-    //slub_check();
+    slub_init();
+    slub_check();
 
     /* do nothing */
     while (1)
