@@ -36,7 +36,7 @@ int kern_init(void) {
 int kern_init(void) {
     80200020:	e406                	sd	ra,8(sp)
     memset(edata, 0, end - edata);
-    80200022:	1fd000ef          	jal	ra,80200a1e <memset>
+    80200022:	5c0000ef          	jal	ra,802005e2 <memset>
 
     cons_init();  // init the console
     80200026:	150000ef          	jal	ra,80200176 <cons_init>
@@ -131,7 +131,7 @@ int cprintf(const char *fmt, ...) {
     int cnt = 0;
     80200098:	c202                	sw	zero,4(sp)
     vprintfmt((void *)cputch, &cnt, fmt, ap);
-    8020009a:	598000ef          	jal	ra,80200632 <vprintfmt>
+    8020009a:	5c6000ef          	jal	ra,80200660 <vprintfmt>
     cnt = vcprintf(fmt, ap);
     va_end(ap);
     return cnt;
@@ -227,7 +227,7 @@ void clock_set_next_event(void) { sbi_set_timer(get_cycles() + timebase); }
     80200144:	67e1                	lui	a5,0x18
     80200146:	6a078793          	addi	a5,a5,1696 # 186a0 <kern_entry-0x801e7960>
     8020014a:	953e                	add	a0,a0,a5
-    8020014c:	083000ef          	jal	ra,802009ce <sbi_set_timer>
+    8020014c:	0b1000ef          	jal	ra,802009fc <sbi_set_timer>
 }
     80200150:	60a2                	ld	ra,8(sp)
     ticks = 0;
@@ -248,7 +248,7 @@ void clock_set_next_event(void) { sbi_set_timer(get_cycles() + timebase); }
     8020016a:	67e1                	lui	a5,0x18
     8020016c:	6a078793          	addi	a5,a5,1696 # 186a0 <kern_entry-0x801e7960>
     80200170:	953e                	add	a0,a0,a5
-    80200172:	05d0006f          	j	802009ce <sbi_set_timer>
+    80200172:	08b0006f          	j	802009fc <sbi_set_timer>
 
 0000000080200176 <cons_init>:
 
@@ -263,8 +263,8 @@ void cons_init(void) {}
 
 /* cons_putc - print a single character @c to console devices */
 void cons_putc(int c) { sbi_console_putchar((unsigned char)c); }
-    80200178:	0ff57513          	andi	a0,a0,255
-    8020017c:	0390006f          	j	802009b4 <sbi_console_putchar>
+    80200178:	0ff57513          	zext.b	a0,a0
+    8020017c:	0670006f          	j	802009e2 <sbi_console_putchar>
 
 0000000080200180 <intr_enable>:
 #include <intr.h>
@@ -626,7 +626,7 @@ void interrupt_handler(struct trapframe *tf) {
     80200474:	60a2                	ld	ra,8(sp)
     80200476:	0141                	addi	sp,sp,16
                 sbi_shutdown();
-    80200478:	ab85                	j	802009e8 <sbi_shutdown>
+    80200478:	ab79                	j	80200a16 <sbi_shutdown>
 
 000000008020047a <exception_handler>:
 
@@ -823,660 +823,660 @@ __trapret:
     sret
     802005c2:	10200073          	sret
 
-00000000802005c6 <printnum>:
- * */
-static void
-printnum(void (*putch)(int, void*), void *putdat,
-        unsigned long long num, unsigned base, int width, int padc) {
-    unsigned long long result = num;
-    unsigned mod = do_div(result, base);
-    802005c6:	02069813          	slli	a6,a3,0x20
-        unsigned long long num, unsigned base, int width, int padc) {
-    802005ca:	7179                	addi	sp,sp,-48
-    unsigned mod = do_div(result, base);
-    802005cc:	02085813          	srli	a6,a6,0x20
-        unsigned long long num, unsigned base, int width, int padc) {
-    802005d0:	e052                	sd	s4,0(sp)
-    unsigned mod = do_div(result, base);
-    802005d2:	03067a33          	remu	s4,a2,a6
-        unsigned long long num, unsigned base, int width, int padc) {
-    802005d6:	f022                	sd	s0,32(sp)
-    802005d8:	ec26                	sd	s1,24(sp)
-    802005da:	e84a                	sd	s2,16(sp)
-    802005dc:	f406                	sd	ra,40(sp)
-    802005de:	e44e                	sd	s3,8(sp)
-    802005e0:	84aa                	mv	s1,a0
-    802005e2:	892e                	mv	s2,a1
-    // first recursively print all preceding (more significant) digits
-    if (num >= base) {
-        printnum(putch, putdat, result, base, width - 1, padc);
-    } else {
-        // print any needed pad characters before first digit
-        while (-- width > 0)
-    802005e4:	fff7041b          	addiw	s0,a4,-1
-    unsigned mod = do_div(result, base);
-    802005e8:	2a01                	sext.w	s4,s4
-    if (num >= base) {
-    802005ea:	03067e63          	bgeu	a2,a6,80200626 <printnum+0x60>
-    802005ee:	89be                	mv	s3,a5
-        while (-- width > 0)
-    802005f0:	00805763          	blez	s0,802005fe <printnum+0x38>
-    802005f4:	347d                	addiw	s0,s0,-1
-            putch(padc, putdat);
-    802005f6:	85ca                	mv	a1,s2
-    802005f8:	854e                	mv	a0,s3
-    802005fa:	9482                	jalr	s1
-        while (-- width > 0)
-    802005fc:	fc65                	bnez	s0,802005f4 <printnum+0x2e>
-    }
-    // then print this (the least significant) digit
-    putch("0123456789abcdef"[mod], putdat);
-    802005fe:	1a02                	slli	s4,s4,0x20
-    80200600:	00001797          	auipc	a5,0x1
-    80200604:	a1078793          	addi	a5,a5,-1520 # 80201010 <etext+0x5e0>
-    80200608:	020a5a13          	srli	s4,s4,0x20
-    8020060c:	9a3e                	add	s4,s4,a5
-}
-    8020060e:	7402                	ld	s0,32(sp)
-    putch("0123456789abcdef"[mod], putdat);
-    80200610:	000a4503          	lbu	a0,0(s4)
-}
-    80200614:	70a2                	ld	ra,40(sp)
-    80200616:	69a2                	ld	s3,8(sp)
-    80200618:	6a02                	ld	s4,0(sp)
-    putch("0123456789abcdef"[mod], putdat);
-    8020061a:	85ca                	mv	a1,s2
-    8020061c:	87a6                	mv	a5,s1
-}
-    8020061e:	6942                	ld	s2,16(sp)
-    80200620:	64e2                	ld	s1,24(sp)
-    80200622:	6145                	addi	sp,sp,48
-    putch("0123456789abcdef"[mod], putdat);
-    80200624:	8782                	jr	a5
-        printnum(putch, putdat, result, base, width - 1, padc);
-    80200626:	03065633          	divu	a2,a2,a6
-    8020062a:	8722                	mv	a4,s0
-    8020062c:	f9bff0ef          	jal	ra,802005c6 <printnum>
-    80200630:	b7f9                	j	802005fe <printnum+0x38>
-
-0000000080200632 <vprintfmt>:
- *
- * Call this function if you are already dealing with a va_list.
- * Or you probably want printfmt() instead.
- * */
-void
-vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap) {
-    80200632:	7119                	addi	sp,sp,-128
-    80200634:	f4a6                	sd	s1,104(sp)
-    80200636:	f0ca                	sd	s2,96(sp)
-    80200638:	ecce                	sd	s3,88(sp)
-    8020063a:	e8d2                	sd	s4,80(sp)
-    8020063c:	e4d6                	sd	s5,72(sp)
-    8020063e:	e0da                	sd	s6,64(sp)
-    80200640:	fc5e                	sd	s7,56(sp)
-    80200642:	f06a                	sd	s10,32(sp)
-    80200644:	fc86                	sd	ra,120(sp)
-    80200646:	f8a2                	sd	s0,112(sp)
-    80200648:	f862                	sd	s8,48(sp)
-    8020064a:	f466                	sd	s9,40(sp)
-    8020064c:	ec6e                	sd	s11,24(sp)
-    8020064e:	892a                	mv	s2,a0
-    80200650:	84ae                	mv	s1,a1
-    80200652:	8d32                	mv	s10,a2
-    80200654:	8a36                	mv	s4,a3
-    register int ch, err;
-    unsigned long long num;
-    int base, width, precision, lflag, altflag;
-
-    while (1) {
-        while ((ch = *(unsigned char *)fmt ++) != '%') {
-    80200656:	02500993          	li	s3,37
-            putch(ch, putdat);
-        }
-
-        // Process a %-escape sequence
-        char padc = ' ';
-        width = precision = -1;
-    8020065a:	5b7d                	li	s6,-1
-    8020065c:	00001a97          	auipc	s5,0x1
-    80200660:	9e8a8a93          	addi	s5,s5,-1560 # 80201044 <etext+0x614>
-        case 'e':
-            err = va_arg(ap, int);
-            if (err < 0) {
-                err = -err;
-            }
-            if (err > MAXERROR || (p = error_string[err]) == NULL) {
-    80200664:	00001b97          	auipc	s7,0x1
-    80200668:	bbcb8b93          	addi	s7,s7,-1092 # 80201220 <error_string>
-        while ((ch = *(unsigned char *)fmt ++) != '%') {
-    8020066c:	000d4503          	lbu	a0,0(s10)
-    80200670:	001d0413          	addi	s0,s10,1
-    80200674:	01350a63          	beq	a0,s3,80200688 <vprintfmt+0x56>
-            if (ch == '\0') {
-    80200678:	c121                	beqz	a0,802006b8 <vprintfmt+0x86>
-            putch(ch, putdat);
-    8020067a:	85a6                	mv	a1,s1
-        while ((ch = *(unsigned char *)fmt ++) != '%') {
-    8020067c:	0405                	addi	s0,s0,1
-            putch(ch, putdat);
-    8020067e:	9902                	jalr	s2
-        while ((ch = *(unsigned char *)fmt ++) != '%') {
-    80200680:	fff44503          	lbu	a0,-1(s0)
-    80200684:	ff351ae3          	bne	a0,s3,80200678 <vprintfmt+0x46>
-        switch (ch = *(unsigned char *)fmt ++) {
-    80200688:	00044603          	lbu	a2,0(s0)
-        char padc = ' ';
-    8020068c:	02000793          	li	a5,32
-        lflag = altflag = 0;
-    80200690:	4c81                	li	s9,0
-    80200692:	4881                	li	a7,0
-        width = precision = -1;
-    80200694:	5c7d                	li	s8,-1
-    80200696:	5dfd                	li	s11,-1
-    80200698:	05500513          	li	a0,85
-                if (ch < '0' || ch > '9') {
-    8020069c:	4825                	li	a6,9
-        switch (ch = *(unsigned char *)fmt ++) {
-    8020069e:	fdd6059b          	addiw	a1,a2,-35
-    802006a2:	0ff5f593          	andi	a1,a1,255
-    802006a6:	00140d13          	addi	s10,s0,1
-    802006aa:	04b56263          	bltu	a0,a1,802006ee <vprintfmt+0xbc>
-    802006ae:	058a                	slli	a1,a1,0x2
-    802006b0:	95d6                	add	a1,a1,s5
-    802006b2:	4194                	lw	a3,0(a1)
-    802006b4:	96d6                	add	a3,a3,s5
-    802006b6:	8682                	jr	a3
-            for (fmt --; fmt[-1] != '%'; fmt --)
-                /* do nothing */;
-            break;
-        }
-    }
-}
-    802006b8:	70e6                	ld	ra,120(sp)
-    802006ba:	7446                	ld	s0,112(sp)
-    802006bc:	74a6                	ld	s1,104(sp)
-    802006be:	7906                	ld	s2,96(sp)
-    802006c0:	69e6                	ld	s3,88(sp)
-    802006c2:	6a46                	ld	s4,80(sp)
-    802006c4:	6aa6                	ld	s5,72(sp)
-    802006c6:	6b06                	ld	s6,64(sp)
-    802006c8:	7be2                	ld	s7,56(sp)
-    802006ca:	7c42                	ld	s8,48(sp)
-    802006cc:	7ca2                	ld	s9,40(sp)
-    802006ce:	7d02                	ld	s10,32(sp)
-    802006d0:	6de2                	ld	s11,24(sp)
-    802006d2:	6109                	addi	sp,sp,128
-    802006d4:	8082                	ret
-            padc = '0';
-    802006d6:	87b2                	mv	a5,a2
-            goto reswitch;
-    802006d8:	00144603          	lbu	a2,1(s0)
-        switch (ch = *(unsigned char *)fmt ++) {
-    802006dc:	846a                	mv	s0,s10
-    802006de:	00140d13          	addi	s10,s0,1
-    802006e2:	fdd6059b          	addiw	a1,a2,-35
-    802006e6:	0ff5f593          	andi	a1,a1,255
-    802006ea:	fcb572e3          	bgeu	a0,a1,802006ae <vprintfmt+0x7c>
-            putch('%', putdat);
-    802006ee:	85a6                	mv	a1,s1
-    802006f0:	02500513          	li	a0,37
-    802006f4:	9902                	jalr	s2
-            for (fmt --; fmt[-1] != '%'; fmt --)
-    802006f6:	fff44783          	lbu	a5,-1(s0)
-    802006fa:	8d22                	mv	s10,s0
-    802006fc:	f73788e3          	beq	a5,s3,8020066c <vprintfmt+0x3a>
-    80200700:	ffed4783          	lbu	a5,-2(s10)
-    80200704:	1d7d                	addi	s10,s10,-1
-    80200706:	ff379de3          	bne	a5,s3,80200700 <vprintfmt+0xce>
-    8020070a:	b78d                	j	8020066c <vprintfmt+0x3a>
-                precision = precision * 10 + ch - '0';
-    8020070c:	fd060c1b          	addiw	s8,a2,-48
-                ch = *fmt;
-    80200710:	00144603          	lbu	a2,1(s0)
-        switch (ch = *(unsigned char *)fmt ++) {
-    80200714:	846a                	mv	s0,s10
-                if (ch < '0' || ch > '9') {
-    80200716:	fd06069b          	addiw	a3,a2,-48
-                ch = *fmt;
-    8020071a:	0006059b          	sext.w	a1,a2
-                if (ch < '0' || ch > '9') {
-    8020071e:	02d86463          	bltu	a6,a3,80200746 <vprintfmt+0x114>
-                ch = *fmt;
-    80200722:	00144603          	lbu	a2,1(s0)
-                precision = precision * 10 + ch - '0';
-    80200726:	002c169b          	slliw	a3,s8,0x2
-    8020072a:	0186873b          	addw	a4,a3,s8
-    8020072e:	0017171b          	slliw	a4,a4,0x1
-    80200732:	9f2d                	addw	a4,a4,a1
-                if (ch < '0' || ch > '9') {
-    80200734:	fd06069b          	addiw	a3,a2,-48
-            for (precision = 0; ; ++ fmt) {
-    80200738:	0405                	addi	s0,s0,1
-                precision = precision * 10 + ch - '0';
-    8020073a:	fd070c1b          	addiw	s8,a4,-48
-                ch = *fmt;
-    8020073e:	0006059b          	sext.w	a1,a2
-                if (ch < '0' || ch > '9') {
-    80200742:	fed870e3          	bgeu	a6,a3,80200722 <vprintfmt+0xf0>
-            if (width < 0)
-    80200746:	f40ddce3          	bgez	s11,8020069e <vprintfmt+0x6c>
-                width = precision, precision = -1;
-    8020074a:	8de2                	mv	s11,s8
-    8020074c:	5c7d                	li	s8,-1
-    8020074e:	bf81                	j	8020069e <vprintfmt+0x6c>
-            if (width < 0)
-    80200750:	fffdc693          	not	a3,s11
-    80200754:	96fd                	srai	a3,a3,0x3f
-    80200756:	00ddfdb3          	and	s11,s11,a3
-        switch (ch = *(unsigned char *)fmt ++) {
-    8020075a:	00144603          	lbu	a2,1(s0)
-    8020075e:	2d81                	sext.w	s11,s11
-    80200760:	846a                	mv	s0,s10
-            goto reswitch;
-    80200762:	bf35                	j	8020069e <vprintfmt+0x6c>
-            precision = va_arg(ap, int);
-    80200764:	000a2c03          	lw	s8,0(s4)
-        switch (ch = *(unsigned char *)fmt ++) {
-    80200768:	00144603          	lbu	a2,1(s0)
-            precision = va_arg(ap, int);
-    8020076c:	0a21                	addi	s4,s4,8
-        switch (ch = *(unsigned char *)fmt ++) {
-    8020076e:	846a                	mv	s0,s10
-            goto process_precision;
-    80200770:	bfd9                	j	80200746 <vprintfmt+0x114>
-    if (lflag >= 2) {
-    80200772:	4705                	li	a4,1
-            precision = va_arg(ap, int);
-    80200774:	008a0593          	addi	a1,s4,8
-    if (lflag >= 2) {
-    80200778:	01174463          	blt	a4,a7,80200780 <vprintfmt+0x14e>
-    else if (lflag) {
-    8020077c:	1a088e63          	beqz	a7,80200938 <vprintfmt+0x306>
-        return va_arg(*ap, unsigned long);
-    80200780:	000a3603          	ld	a2,0(s4)
-    80200784:	46c1                	li	a3,16
-    80200786:	8a2e                	mv	s4,a1
-            printnum(putch, putdat, num, base, width, padc);
-    80200788:	2781                	sext.w	a5,a5
-    8020078a:	876e                	mv	a4,s11
-    8020078c:	85a6                	mv	a1,s1
-    8020078e:	854a                	mv	a0,s2
-    80200790:	e37ff0ef          	jal	ra,802005c6 <printnum>
-            break;
-    80200794:	bde1                	j	8020066c <vprintfmt+0x3a>
-            putch(va_arg(ap, int), putdat);
-    80200796:	000a2503          	lw	a0,0(s4)
-    8020079a:	85a6                	mv	a1,s1
-    8020079c:	0a21                	addi	s4,s4,8
-    8020079e:	9902                	jalr	s2
-            break;
-    802007a0:	b5f1                	j	8020066c <vprintfmt+0x3a>
-    if (lflag >= 2) {
-    802007a2:	4705                	li	a4,1
-            precision = va_arg(ap, int);
-    802007a4:	008a0593          	addi	a1,s4,8
-    if (lflag >= 2) {
-    802007a8:	01174463          	blt	a4,a7,802007b0 <vprintfmt+0x17e>
-    else if (lflag) {
-    802007ac:	18088163          	beqz	a7,8020092e <vprintfmt+0x2fc>
-        return va_arg(*ap, unsigned long);
-    802007b0:	000a3603          	ld	a2,0(s4)
-    802007b4:	46a9                	li	a3,10
-    802007b6:	8a2e                	mv	s4,a1
-    802007b8:	bfc1                	j	80200788 <vprintfmt+0x156>
-        switch (ch = *(unsigned char *)fmt ++) {
-    802007ba:	00144603          	lbu	a2,1(s0)
-            altflag = 1;
-    802007be:	4c85                	li	s9,1
-        switch (ch = *(unsigned char *)fmt ++) {
-    802007c0:	846a                	mv	s0,s10
-            goto reswitch;
-    802007c2:	bdf1                	j	8020069e <vprintfmt+0x6c>
-            putch(ch, putdat);
-    802007c4:	85a6                	mv	a1,s1
-    802007c6:	02500513          	li	a0,37
-    802007ca:	9902                	jalr	s2
-            break;
-    802007cc:	b545                	j	8020066c <vprintfmt+0x3a>
-        switch (ch = *(unsigned char *)fmt ++) {
-    802007ce:	00144603          	lbu	a2,1(s0)
-            lflag ++;
-    802007d2:	2885                	addiw	a7,a7,1
-        switch (ch = *(unsigned char *)fmt ++) {
-    802007d4:	846a                	mv	s0,s10
-            goto reswitch;
-    802007d6:	b5e1                	j	8020069e <vprintfmt+0x6c>
-    if (lflag >= 2) {
-    802007d8:	4705                	li	a4,1
-            precision = va_arg(ap, int);
-    802007da:	008a0593          	addi	a1,s4,8
-    if (lflag >= 2) {
-    802007de:	01174463          	blt	a4,a7,802007e6 <vprintfmt+0x1b4>
-    else if (lflag) {
-    802007e2:	14088163          	beqz	a7,80200924 <vprintfmt+0x2f2>
-        return va_arg(*ap, unsigned long);
-    802007e6:	000a3603          	ld	a2,0(s4)
-    802007ea:	46a1                	li	a3,8
-    802007ec:	8a2e                	mv	s4,a1
-    802007ee:	bf69                	j	80200788 <vprintfmt+0x156>
-            putch('0', putdat);
-    802007f0:	03000513          	li	a0,48
-    802007f4:	85a6                	mv	a1,s1
-    802007f6:	e03e                	sd	a5,0(sp)
-    802007f8:	9902                	jalr	s2
-            putch('x', putdat);
-    802007fa:	85a6                	mv	a1,s1
-    802007fc:	07800513          	li	a0,120
-    80200800:	9902                	jalr	s2
-            num = (unsigned long long)va_arg(ap, void *);
-    80200802:	0a21                	addi	s4,s4,8
-            goto number;
-    80200804:	6782                	ld	a5,0(sp)
-    80200806:	46c1                	li	a3,16
-            num = (unsigned long long)va_arg(ap, void *);
-    80200808:	ff8a3603          	ld	a2,-8(s4)
-            goto number;
-    8020080c:	bfb5                	j	80200788 <vprintfmt+0x156>
-            if ((p = va_arg(ap, char *)) == NULL) {
-    8020080e:	000a3403          	ld	s0,0(s4)
-    80200812:	008a0713          	addi	a4,s4,8
-    80200816:	e03a                	sd	a4,0(sp)
-    80200818:	14040263          	beqz	s0,8020095c <vprintfmt+0x32a>
-            if (width > 0 && padc != '-') {
-    8020081c:	0fb05763          	blez	s11,8020090a <vprintfmt+0x2d8>
-    80200820:	02d00693          	li	a3,45
-    80200824:	0cd79163          	bne	a5,a3,802008e6 <vprintfmt+0x2b4>
-            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
-    80200828:	00044783          	lbu	a5,0(s0)
-    8020082c:	0007851b          	sext.w	a0,a5
-    80200830:	cf85                	beqz	a5,80200868 <vprintfmt+0x236>
-    80200832:	00140a13          	addi	s4,s0,1
-                if (altflag && (ch < ' ' || ch > '~')) {
-    80200836:	05e00413          	li	s0,94
-            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
-    8020083a:	000c4563          	bltz	s8,80200844 <vprintfmt+0x212>
-    8020083e:	3c7d                	addiw	s8,s8,-1
-    80200840:	036c0263          	beq	s8,s6,80200864 <vprintfmt+0x232>
-                    putch('?', putdat);
-    80200844:	85a6                	mv	a1,s1
-                if (altflag && (ch < ' ' || ch > '~')) {
-    80200846:	0e0c8e63          	beqz	s9,80200942 <vprintfmt+0x310>
-    8020084a:	3781                	addiw	a5,a5,-32
-    8020084c:	0ef47b63          	bgeu	s0,a5,80200942 <vprintfmt+0x310>
-                    putch('?', putdat);
-    80200850:	03f00513          	li	a0,63
-    80200854:	9902                	jalr	s2
-            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
-    80200856:	000a4783          	lbu	a5,0(s4)
-    8020085a:	3dfd                	addiw	s11,s11,-1
-    8020085c:	0a05                	addi	s4,s4,1
-    8020085e:	0007851b          	sext.w	a0,a5
-    80200862:	ffe1                	bnez	a5,8020083a <vprintfmt+0x208>
-            for (; width > 0; width --) {
-    80200864:	01b05963          	blez	s11,80200876 <vprintfmt+0x244>
-    80200868:	3dfd                	addiw	s11,s11,-1
-                putch(' ', putdat);
-    8020086a:	85a6                	mv	a1,s1
-    8020086c:	02000513          	li	a0,32
-    80200870:	9902                	jalr	s2
-            for (; width > 0; width --) {
-    80200872:	fe0d9be3          	bnez	s11,80200868 <vprintfmt+0x236>
-            if ((p = va_arg(ap, char *)) == NULL) {
-    80200876:	6a02                	ld	s4,0(sp)
-    80200878:	bbd5                	j	8020066c <vprintfmt+0x3a>
-    if (lflag >= 2) {
-    8020087a:	4705                	li	a4,1
-            precision = va_arg(ap, int);
-    8020087c:	008a0c93          	addi	s9,s4,8
-    if (lflag >= 2) {
-    80200880:	01174463          	blt	a4,a7,80200888 <vprintfmt+0x256>
-    else if (lflag) {
-    80200884:	08088d63          	beqz	a7,8020091e <vprintfmt+0x2ec>
-        return va_arg(*ap, long);
-    80200888:	000a3403          	ld	s0,0(s4)
-            if ((long long)num < 0) {
-    8020088c:	0a044d63          	bltz	s0,80200946 <vprintfmt+0x314>
-            num = getint(&ap, lflag);
-    80200890:	8622                	mv	a2,s0
-    80200892:	8a66                	mv	s4,s9
-    80200894:	46a9                	li	a3,10
-    80200896:	bdcd                	j	80200788 <vprintfmt+0x156>
-            err = va_arg(ap, int);
-    80200898:	000a2783          	lw	a5,0(s4)
-            if (err > MAXERROR || (p = error_string[err]) == NULL) {
-    8020089c:	4719                	li	a4,6
-            err = va_arg(ap, int);
-    8020089e:	0a21                	addi	s4,s4,8
-            if (err < 0) {
-    802008a0:	41f7d69b          	sraiw	a3,a5,0x1f
-    802008a4:	8fb5                	xor	a5,a5,a3
-    802008a6:	40d786bb          	subw	a3,a5,a3
-            if (err > MAXERROR || (p = error_string[err]) == NULL) {
-    802008aa:	02d74163          	blt	a4,a3,802008cc <vprintfmt+0x29a>
-    802008ae:	00369793          	slli	a5,a3,0x3
-    802008b2:	97de                	add	a5,a5,s7
-    802008b4:	639c                	ld	a5,0(a5)
-    802008b6:	cb99                	beqz	a5,802008cc <vprintfmt+0x29a>
-                printfmt(putch, putdat, "%s", p);
-    802008b8:	86be                	mv	a3,a5
-    802008ba:	00000617          	auipc	a2,0x0
-    802008be:	78660613          	addi	a2,a2,1926 # 80201040 <etext+0x610>
-    802008c2:	85a6                	mv	a1,s1
-    802008c4:	854a                	mv	a0,s2
-    802008c6:	0ce000ef          	jal	ra,80200994 <printfmt>
-    802008ca:	b34d                	j	8020066c <vprintfmt+0x3a>
-                printfmt(putch, putdat, "error %d", err);
-    802008cc:	00000617          	auipc	a2,0x0
-    802008d0:	76460613          	addi	a2,a2,1892 # 80201030 <etext+0x600>
-    802008d4:	85a6                	mv	a1,s1
-    802008d6:	854a                	mv	a0,s2
-    802008d8:	0bc000ef          	jal	ra,80200994 <printfmt>
-    802008dc:	bb41                	j	8020066c <vprintfmt+0x3a>
-                p = "(null)";
-    802008de:	00000417          	auipc	s0,0x0
-    802008e2:	74a40413          	addi	s0,s0,1866 # 80201028 <etext+0x5f8>
-                for (width -= strnlen(p, precision); width > 0; width --) {
-    802008e6:	85e2                	mv	a1,s8
-    802008e8:	8522                	mv	a0,s0
-    802008ea:	e43e                	sd	a5,8(sp)
-    802008ec:	116000ef          	jal	ra,80200a02 <strnlen>
-    802008f0:	40ad8dbb          	subw	s11,s11,a0
-    802008f4:	01b05b63          	blez	s11,8020090a <vprintfmt+0x2d8>
-                    putch(padc, putdat);
-    802008f8:	67a2                	ld	a5,8(sp)
-    802008fa:	00078a1b          	sext.w	s4,a5
-                for (width -= strnlen(p, precision); width > 0; width --) {
-    802008fe:	3dfd                	addiw	s11,s11,-1
-                    putch(padc, putdat);
-    80200900:	85a6                	mv	a1,s1
-    80200902:	8552                	mv	a0,s4
-    80200904:	9902                	jalr	s2
-                for (width -= strnlen(p, precision); width > 0; width --) {
-    80200906:	fe0d9ce3          	bnez	s11,802008fe <vprintfmt+0x2cc>
-            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
-    8020090a:	00044783          	lbu	a5,0(s0)
-    8020090e:	00140a13          	addi	s4,s0,1
-    80200912:	0007851b          	sext.w	a0,a5
-    80200916:	d3a5                	beqz	a5,80200876 <vprintfmt+0x244>
-                if (altflag && (ch < ' ' || ch > '~')) {
-    80200918:	05e00413          	li	s0,94
-    8020091c:	bf39                	j	8020083a <vprintfmt+0x208>
-        return va_arg(*ap, int);
-    8020091e:	000a2403          	lw	s0,0(s4)
-    80200922:	b7ad                	j	8020088c <vprintfmt+0x25a>
-        return va_arg(*ap, unsigned int);
-    80200924:	000a6603          	lwu	a2,0(s4)
-    80200928:	46a1                	li	a3,8
-    8020092a:	8a2e                	mv	s4,a1
-    8020092c:	bdb1                	j	80200788 <vprintfmt+0x156>
-    8020092e:	000a6603          	lwu	a2,0(s4)
-    80200932:	46a9                	li	a3,10
-    80200934:	8a2e                	mv	s4,a1
-    80200936:	bd89                	j	80200788 <vprintfmt+0x156>
-    80200938:	000a6603          	lwu	a2,0(s4)
-    8020093c:	46c1                	li	a3,16
-    8020093e:	8a2e                	mv	s4,a1
-    80200940:	b5a1                	j	80200788 <vprintfmt+0x156>
-                    putch(ch, putdat);
-    80200942:	9902                	jalr	s2
-    80200944:	bf09                	j	80200856 <vprintfmt+0x224>
-                putch('-', putdat);
-    80200946:	85a6                	mv	a1,s1
-    80200948:	02d00513          	li	a0,45
-    8020094c:	e03e                	sd	a5,0(sp)
-    8020094e:	9902                	jalr	s2
-                num = -(long long)num;
-    80200950:	6782                	ld	a5,0(sp)
-    80200952:	8a66                	mv	s4,s9
-    80200954:	40800633          	neg	a2,s0
-    80200958:	46a9                	li	a3,10
-    8020095a:	b53d                	j	80200788 <vprintfmt+0x156>
-            if (width > 0 && padc != '-') {
-    8020095c:	03b05163          	blez	s11,8020097e <vprintfmt+0x34c>
-    80200960:	02d00693          	li	a3,45
-    80200964:	f6d79de3          	bne	a5,a3,802008de <vprintfmt+0x2ac>
-                p = "(null)";
-    80200968:	00000417          	auipc	s0,0x0
-    8020096c:	6c040413          	addi	s0,s0,1728 # 80201028 <etext+0x5f8>
-            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
-    80200970:	02800793          	li	a5,40
-    80200974:	02800513          	li	a0,40
-    80200978:	00140a13          	addi	s4,s0,1
-    8020097c:	bd6d                	j	80200836 <vprintfmt+0x204>
-    8020097e:	00000a17          	auipc	s4,0x0
-    80200982:	6aba0a13          	addi	s4,s4,1707 # 80201029 <etext+0x5f9>
-    80200986:	02800513          	li	a0,40
-    8020098a:	02800793          	li	a5,40
-                if (altflag && (ch < ' ' || ch > '~')) {
-    8020098e:	05e00413          	li	s0,94
-    80200992:	b565                	j	8020083a <vprintfmt+0x208>
-
-0000000080200994 <printfmt>:
-printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
-    80200994:	715d                	addi	sp,sp,-80
-    va_start(ap, fmt);
-    80200996:	02810313          	addi	t1,sp,40
-printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
-    8020099a:	f436                	sd	a3,40(sp)
-    vprintfmt(putch, putdat, fmt, ap);
-    8020099c:	869a                	mv	a3,t1
-printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
-    8020099e:	ec06                	sd	ra,24(sp)
-    802009a0:	f83a                	sd	a4,48(sp)
-    802009a2:	fc3e                	sd	a5,56(sp)
-    802009a4:	e0c2                	sd	a6,64(sp)
-    802009a6:	e4c6                	sd	a7,72(sp)
-    va_start(ap, fmt);
-    802009a8:	e41a                	sd	t1,8(sp)
-    vprintfmt(putch, putdat, fmt, ap);
-    802009aa:	c89ff0ef          	jal	ra,80200632 <vprintfmt>
-}
-    802009ae:	60e2                	ld	ra,24(sp)
-    802009b0:	6161                	addi	sp,sp,80
-    802009b2:	8082                	ret
-
-00000000802009b4 <sbi_console_putchar>:
-uint64_t SBI_REMOTE_SFENCE_VMA_ASID = 7;
-uint64_t SBI_SHUTDOWN = 8;
-
-uint64_t sbi_call(uint64_t sbi_type, uint64_t arg0, uint64_t arg1, uint64_t arg2) {
-    uint64_t ret_val;
-    __asm__ volatile (
-    802009b4:	4781                	li	a5,0
-    802009b6:	00003717          	auipc	a4,0x3
-    802009ba:	64a73703          	ld	a4,1610(a4) # 80204000 <SBI_CONSOLE_PUTCHAR>
-    802009be:	88ba                	mv	a7,a4
-    802009c0:	852a                	mv	a0,a0
-    802009c2:	85be                	mv	a1,a5
-    802009c4:	863e                	mv	a2,a5
-    802009c6:	00000073          	ecall
-    802009ca:	87aa                	mv	a5,a0
-int sbi_console_getchar(void) {
-    return sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0);
-}
-void sbi_console_putchar(unsigned char ch) {
-    sbi_call(SBI_CONSOLE_PUTCHAR, ch, 0, 0);
-}
-    802009cc:	8082                	ret
-
-00000000802009ce <sbi_set_timer>:
-    __asm__ volatile (
-    802009ce:	4781                	li	a5,0
-    802009d0:	00003717          	auipc	a4,0x3
-    802009d4:	65073703          	ld	a4,1616(a4) # 80204020 <SBI_SET_TIMER>
-    802009d8:	88ba                	mv	a7,a4
-    802009da:	852a                	mv	a0,a0
-    802009dc:	85be                	mv	a1,a5
-    802009de:	863e                	mv	a2,a5
-    802009e0:	00000073          	ecall
-    802009e4:	87aa                	mv	a5,a0
-
-void sbi_set_timer(unsigned long long stime_value) {
-    sbi_call(SBI_SET_TIMER, stime_value, 0, 0);
-}
-    802009e6:	8082                	ret
-
-00000000802009e8 <sbi_shutdown>:
-    __asm__ volatile (
-    802009e8:	4781                	li	a5,0
-    802009ea:	00003717          	auipc	a4,0x3
-    802009ee:	61e73703          	ld	a4,1566(a4) # 80204008 <SBI_SHUTDOWN>
-    802009f2:	88ba                	mv	a7,a4
-    802009f4:	853e                	mv	a0,a5
-    802009f6:	85be                	mv	a1,a5
-    802009f8:	863e                	mv	a2,a5
-    802009fa:	00000073          	ecall
-    802009fe:	87aa                	mv	a5,a0
-
-
-void sbi_shutdown(void)
-{
-    sbi_call(SBI_SHUTDOWN,0,0,0);
-    80200a00:	8082                	ret
-
-0000000080200a02 <strnlen>:
+00000000802005c6 <strnlen>:
  * @len if there is no '\0' character among the first @len characters
  * pointed by @s.
  * */
 size_t
 strnlen(const char *s, size_t len) {
     size_t cnt = 0;
-    80200a02:	4781                	li	a5,0
+    802005c6:	4781                	li	a5,0
     while (cnt < len && *s ++ != '\0') {
-    80200a04:	e589                	bnez	a1,80200a0e <strnlen+0xc>
-    80200a06:	a811                	j	80200a1a <strnlen+0x18>
+    802005c8:	e589                	bnez	a1,802005d2 <strnlen+0xc>
+    802005ca:	a811                	j	802005de <strnlen+0x18>
         cnt ++;
-    80200a08:	0785                	addi	a5,a5,1
+    802005cc:	0785                	addi	a5,a5,1
     while (cnt < len && *s ++ != '\0') {
-    80200a0a:	00f58863          	beq	a1,a5,80200a1a <strnlen+0x18>
-    80200a0e:	00f50733          	add	a4,a0,a5
-    80200a12:	00074703          	lbu	a4,0(a4)
-    80200a16:	fb6d                	bnez	a4,80200a08 <strnlen+0x6>
-    80200a18:	85be                	mv	a1,a5
+    802005ce:	00f58863          	beq	a1,a5,802005de <strnlen+0x18>
+    802005d2:	00f50733          	add	a4,a0,a5
+    802005d6:	00074703          	lbu	a4,0(a4)
+    802005da:	fb6d                	bnez	a4,802005cc <strnlen+0x6>
+    802005dc:	85be                	mv	a1,a5
     }
     return cnt;
 }
-    80200a1a:	852e                	mv	a0,a1
-    80200a1c:	8082                	ret
+    802005de:	852e                	mv	a0,a1
+    802005e0:	8082                	ret
 
-0000000080200a1e <memset>:
+00000000802005e2 <memset>:
 memset(void *s, char c, size_t n) {
 #ifdef __HAVE_ARCH_MEMSET
     return __memset(s, c, n);
 #else
     char *p = s;
     while (n -- > 0) {
-    80200a1e:	ca01                	beqz	a2,80200a2e <memset+0x10>
-    80200a20:	962a                	add	a2,a2,a0
+    802005e2:	ca01                	beqz	a2,802005f2 <memset+0x10>
+    802005e4:	962a                	add	a2,a2,a0
     char *p = s;
-    80200a22:	87aa                	mv	a5,a0
+    802005e6:	87aa                	mv	a5,a0
         *p ++ = c;
-    80200a24:	0785                	addi	a5,a5,1
-    80200a26:	feb78fa3          	sb	a1,-1(a5)
+    802005e8:	0785                	addi	a5,a5,1
+    802005ea:	feb78fa3          	sb	a1,-1(a5)
     while (n -- > 0) {
-    80200a2a:	fec79de3          	bne	a5,a2,80200a24 <memset+0x6>
+    802005ee:	fec79de3          	bne	a5,a2,802005e8 <memset+0x6>
     }
     return s;
 #endif /* __HAVE_ARCH_MEMSET */
 }
+    802005f2:	8082                	ret
+
+00000000802005f4 <printnum>:
+ * */
+static void
+printnum(void (*putch)(int, void*), void *putdat,
+        unsigned long long num, unsigned base, int width, int padc) {
+    unsigned long long result = num;
+    unsigned mod = do_div(result, base);
+    802005f4:	02069813          	slli	a6,a3,0x20
+        unsigned long long num, unsigned base, int width, int padc) {
+    802005f8:	7179                	addi	sp,sp,-48
+    unsigned mod = do_div(result, base);
+    802005fa:	02085813          	srli	a6,a6,0x20
+        unsigned long long num, unsigned base, int width, int padc) {
+    802005fe:	e052                	sd	s4,0(sp)
+    unsigned mod = do_div(result, base);
+    80200600:	03067a33          	remu	s4,a2,a6
+        unsigned long long num, unsigned base, int width, int padc) {
+    80200604:	f022                	sd	s0,32(sp)
+    80200606:	ec26                	sd	s1,24(sp)
+    80200608:	e84a                	sd	s2,16(sp)
+    8020060a:	f406                	sd	ra,40(sp)
+    8020060c:	e44e                	sd	s3,8(sp)
+    8020060e:	84aa                	mv	s1,a0
+    80200610:	892e                	mv	s2,a1
+    // first recursively print all preceding (more significant) digits
+    if (num >= base) {
+        printnum(putch, putdat, result, base, width - 1, padc);
+    } else {
+        // print any needed pad characters before first digit
+        while (-- width > 0)
+    80200612:	fff7041b          	addiw	s0,a4,-1
+    unsigned mod = do_div(result, base);
+    80200616:	2a01                	sext.w	s4,s4
+    if (num >= base) {
+    80200618:	03067e63          	bgeu	a2,a6,80200654 <printnum+0x60>
+    8020061c:	89be                	mv	s3,a5
+        while (-- width > 0)
+    8020061e:	00805763          	blez	s0,8020062c <printnum+0x38>
+    80200622:	347d                	addiw	s0,s0,-1
+            putch(padc, putdat);
+    80200624:	85ca                	mv	a1,s2
+    80200626:	854e                	mv	a0,s3
+    80200628:	9482                	jalr	s1
+        while (-- width > 0)
+    8020062a:	fc65                	bnez	s0,80200622 <printnum+0x2e>
+    }
+    // then print this (the least significant) digit
+    putch("0123456789abcdef"[mod], putdat);
+    8020062c:	1a02                	slli	s4,s4,0x20
+    8020062e:	00001797          	auipc	a5,0x1
+    80200632:	9e278793          	addi	a5,a5,-1566 # 80201010 <etext+0x5e0>
+    80200636:	020a5a13          	srli	s4,s4,0x20
+    8020063a:	9a3e                	add	s4,s4,a5
+}
+    8020063c:	7402                	ld	s0,32(sp)
+    putch("0123456789abcdef"[mod], putdat);
+    8020063e:	000a4503          	lbu	a0,0(s4)
+}
+    80200642:	70a2                	ld	ra,40(sp)
+    80200644:	69a2                	ld	s3,8(sp)
+    80200646:	6a02                	ld	s4,0(sp)
+    putch("0123456789abcdef"[mod], putdat);
+    80200648:	85ca                	mv	a1,s2
+    8020064a:	87a6                	mv	a5,s1
+}
+    8020064c:	6942                	ld	s2,16(sp)
+    8020064e:	64e2                	ld	s1,24(sp)
+    80200650:	6145                	addi	sp,sp,48
+    putch("0123456789abcdef"[mod], putdat);
+    80200652:	8782                	jr	a5
+        printnum(putch, putdat, result, base, width - 1, padc);
+    80200654:	03065633          	divu	a2,a2,a6
+    80200658:	8722                	mv	a4,s0
+    8020065a:	f9bff0ef          	jal	ra,802005f4 <printnum>
+    8020065e:	b7f9                	j	8020062c <printnum+0x38>
+
+0000000080200660 <vprintfmt>:
+ *
+ * Call this function if you are already dealing with a va_list.
+ * Or you probably want printfmt() instead.
+ * */
+void
+vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap) {
+    80200660:	7119                	addi	sp,sp,-128
+    80200662:	f4a6                	sd	s1,104(sp)
+    80200664:	f0ca                	sd	s2,96(sp)
+    80200666:	ecce                	sd	s3,88(sp)
+    80200668:	e8d2                	sd	s4,80(sp)
+    8020066a:	e4d6                	sd	s5,72(sp)
+    8020066c:	e0da                	sd	s6,64(sp)
+    8020066e:	fc5e                	sd	s7,56(sp)
+    80200670:	f06a                	sd	s10,32(sp)
+    80200672:	fc86                	sd	ra,120(sp)
+    80200674:	f8a2                	sd	s0,112(sp)
+    80200676:	f862                	sd	s8,48(sp)
+    80200678:	f466                	sd	s9,40(sp)
+    8020067a:	ec6e                	sd	s11,24(sp)
+    8020067c:	892a                	mv	s2,a0
+    8020067e:	84ae                	mv	s1,a1
+    80200680:	8d32                	mv	s10,a2
+    80200682:	8a36                	mv	s4,a3
+    register int ch, err;
+    unsigned long long num;
+    int base, width, precision, lflag, altflag;
+
+    while (1) {
+        while ((ch = *(unsigned char *)fmt ++) != '%') {
+    80200684:	02500993          	li	s3,37
+            putch(ch, putdat);
+        }
+
+        // Process a %-escape sequence
+        char padc = ' ';
+        width = precision = -1;
+    80200688:	5b7d                	li	s6,-1
+    8020068a:	00001a97          	auipc	s5,0x1
+    8020068e:	9baa8a93          	addi	s5,s5,-1606 # 80201044 <etext+0x614>
+        case 'e':
+            err = va_arg(ap, int);
+            if (err < 0) {
+                err = -err;
+            }
+            if (err > MAXERROR || (p = error_string[err]) == NULL) {
+    80200692:	00001b97          	auipc	s7,0x1
+    80200696:	b8eb8b93          	addi	s7,s7,-1138 # 80201220 <error_string>
+        while ((ch = *(unsigned char *)fmt ++) != '%') {
+    8020069a:	000d4503          	lbu	a0,0(s10)
+    8020069e:	001d0413          	addi	s0,s10,1
+    802006a2:	01350a63          	beq	a0,s3,802006b6 <vprintfmt+0x56>
+            if (ch == '\0') {
+    802006a6:	c121                	beqz	a0,802006e6 <vprintfmt+0x86>
+            putch(ch, putdat);
+    802006a8:	85a6                	mv	a1,s1
+        while ((ch = *(unsigned char *)fmt ++) != '%') {
+    802006aa:	0405                	addi	s0,s0,1
+            putch(ch, putdat);
+    802006ac:	9902                	jalr	s2
+        while ((ch = *(unsigned char *)fmt ++) != '%') {
+    802006ae:	fff44503          	lbu	a0,-1(s0)
+    802006b2:	ff351ae3          	bne	a0,s3,802006a6 <vprintfmt+0x46>
+        switch (ch = *(unsigned char *)fmt ++) {
+    802006b6:	00044603          	lbu	a2,0(s0)
+        char padc = ' ';
+    802006ba:	02000793          	li	a5,32
+        lflag = altflag = 0;
+    802006be:	4c81                	li	s9,0
+    802006c0:	4881                	li	a7,0
+        width = precision = -1;
+    802006c2:	5c7d                	li	s8,-1
+    802006c4:	5dfd                	li	s11,-1
+    802006c6:	05500513          	li	a0,85
+                if (ch < '0' || ch > '9') {
+    802006ca:	4825                	li	a6,9
+        switch (ch = *(unsigned char *)fmt ++) {
+    802006cc:	fdd6059b          	addiw	a1,a2,-35
+    802006d0:	0ff5f593          	zext.b	a1,a1
+    802006d4:	00140d13          	addi	s10,s0,1
+    802006d8:	04b56263          	bltu	a0,a1,8020071c <vprintfmt+0xbc>
+    802006dc:	058a                	slli	a1,a1,0x2
+    802006de:	95d6                	add	a1,a1,s5
+    802006e0:	4194                	lw	a3,0(a1)
+    802006e2:	96d6                	add	a3,a3,s5
+    802006e4:	8682                	jr	a3
+            for (fmt --; fmt[-1] != '%'; fmt --)
+                /* do nothing */;
+            break;
+        }
+    }
+}
+    802006e6:	70e6                	ld	ra,120(sp)
+    802006e8:	7446                	ld	s0,112(sp)
+    802006ea:	74a6                	ld	s1,104(sp)
+    802006ec:	7906                	ld	s2,96(sp)
+    802006ee:	69e6                	ld	s3,88(sp)
+    802006f0:	6a46                	ld	s4,80(sp)
+    802006f2:	6aa6                	ld	s5,72(sp)
+    802006f4:	6b06                	ld	s6,64(sp)
+    802006f6:	7be2                	ld	s7,56(sp)
+    802006f8:	7c42                	ld	s8,48(sp)
+    802006fa:	7ca2                	ld	s9,40(sp)
+    802006fc:	7d02                	ld	s10,32(sp)
+    802006fe:	6de2                	ld	s11,24(sp)
+    80200700:	6109                	addi	sp,sp,128
+    80200702:	8082                	ret
+            padc = '0';
+    80200704:	87b2                	mv	a5,a2
+            goto reswitch;
+    80200706:	00144603          	lbu	a2,1(s0)
+        switch (ch = *(unsigned char *)fmt ++) {
+    8020070a:	846a                	mv	s0,s10
+    8020070c:	00140d13          	addi	s10,s0,1
+    80200710:	fdd6059b          	addiw	a1,a2,-35
+    80200714:	0ff5f593          	zext.b	a1,a1
+    80200718:	fcb572e3          	bgeu	a0,a1,802006dc <vprintfmt+0x7c>
+            putch('%', putdat);
+    8020071c:	85a6                	mv	a1,s1
+    8020071e:	02500513          	li	a0,37
+    80200722:	9902                	jalr	s2
+            for (fmt --; fmt[-1] != '%'; fmt --)
+    80200724:	fff44783          	lbu	a5,-1(s0)
+    80200728:	8d22                	mv	s10,s0
+    8020072a:	f73788e3          	beq	a5,s3,8020069a <vprintfmt+0x3a>
+    8020072e:	ffed4783          	lbu	a5,-2(s10)
+    80200732:	1d7d                	addi	s10,s10,-1
+    80200734:	ff379de3          	bne	a5,s3,8020072e <vprintfmt+0xce>
+    80200738:	b78d                	j	8020069a <vprintfmt+0x3a>
+                precision = precision * 10 + ch - '0';
+    8020073a:	fd060c1b          	addiw	s8,a2,-48
+                ch = *fmt;
+    8020073e:	00144603          	lbu	a2,1(s0)
+        switch (ch = *(unsigned char *)fmt ++) {
+    80200742:	846a                	mv	s0,s10
+                if (ch < '0' || ch > '9') {
+    80200744:	fd06069b          	addiw	a3,a2,-48
+                ch = *fmt;
+    80200748:	0006059b          	sext.w	a1,a2
+                if (ch < '0' || ch > '9') {
+    8020074c:	02d86463          	bltu	a6,a3,80200774 <vprintfmt+0x114>
+                ch = *fmt;
+    80200750:	00144603          	lbu	a2,1(s0)
+                precision = precision * 10 + ch - '0';
+    80200754:	002c169b          	slliw	a3,s8,0x2
+    80200758:	0186873b          	addw	a4,a3,s8
+    8020075c:	0017171b          	slliw	a4,a4,0x1
+    80200760:	9f2d                	addw	a4,a4,a1
+                if (ch < '0' || ch > '9') {
+    80200762:	fd06069b          	addiw	a3,a2,-48
+            for (precision = 0; ; ++ fmt) {
+    80200766:	0405                	addi	s0,s0,1
+                precision = precision * 10 + ch - '0';
+    80200768:	fd070c1b          	addiw	s8,a4,-48
+                ch = *fmt;
+    8020076c:	0006059b          	sext.w	a1,a2
+                if (ch < '0' || ch > '9') {
+    80200770:	fed870e3          	bgeu	a6,a3,80200750 <vprintfmt+0xf0>
+            if (width < 0)
+    80200774:	f40ddce3          	bgez	s11,802006cc <vprintfmt+0x6c>
+                width = precision, precision = -1;
+    80200778:	8de2                	mv	s11,s8
+    8020077a:	5c7d                	li	s8,-1
+    8020077c:	bf81                	j	802006cc <vprintfmt+0x6c>
+            if (width < 0)
+    8020077e:	fffdc693          	not	a3,s11
+    80200782:	96fd                	srai	a3,a3,0x3f
+    80200784:	00ddfdb3          	and	s11,s11,a3
+        switch (ch = *(unsigned char *)fmt ++) {
+    80200788:	00144603          	lbu	a2,1(s0)
+    8020078c:	2d81                	sext.w	s11,s11
+    8020078e:	846a                	mv	s0,s10
+            goto reswitch;
+    80200790:	bf35                	j	802006cc <vprintfmt+0x6c>
+            precision = va_arg(ap, int);
+    80200792:	000a2c03          	lw	s8,0(s4)
+        switch (ch = *(unsigned char *)fmt ++) {
+    80200796:	00144603          	lbu	a2,1(s0)
+            precision = va_arg(ap, int);
+    8020079a:	0a21                	addi	s4,s4,8
+        switch (ch = *(unsigned char *)fmt ++) {
+    8020079c:	846a                	mv	s0,s10
+            goto process_precision;
+    8020079e:	bfd9                	j	80200774 <vprintfmt+0x114>
+    if (lflag >= 2) {
+    802007a0:	4705                	li	a4,1
+            precision = va_arg(ap, int);
+    802007a2:	008a0593          	addi	a1,s4,8
+    if (lflag >= 2) {
+    802007a6:	01174463          	blt	a4,a7,802007ae <vprintfmt+0x14e>
+    else if (lflag) {
+    802007aa:	1a088e63          	beqz	a7,80200966 <vprintfmt+0x306>
+        return va_arg(*ap, unsigned long);
+    802007ae:	000a3603          	ld	a2,0(s4)
+    802007b2:	46c1                	li	a3,16
+    802007b4:	8a2e                	mv	s4,a1
+            printnum(putch, putdat, num, base, width, padc);
+    802007b6:	2781                	sext.w	a5,a5
+    802007b8:	876e                	mv	a4,s11
+    802007ba:	85a6                	mv	a1,s1
+    802007bc:	854a                	mv	a0,s2
+    802007be:	e37ff0ef          	jal	ra,802005f4 <printnum>
+            break;
+    802007c2:	bde1                	j	8020069a <vprintfmt+0x3a>
+            putch(va_arg(ap, int), putdat);
+    802007c4:	000a2503          	lw	a0,0(s4)
+    802007c8:	85a6                	mv	a1,s1
+    802007ca:	0a21                	addi	s4,s4,8
+    802007cc:	9902                	jalr	s2
+            break;
+    802007ce:	b5f1                	j	8020069a <vprintfmt+0x3a>
+    if (lflag >= 2) {
+    802007d0:	4705                	li	a4,1
+            precision = va_arg(ap, int);
+    802007d2:	008a0593          	addi	a1,s4,8
+    if (lflag >= 2) {
+    802007d6:	01174463          	blt	a4,a7,802007de <vprintfmt+0x17e>
+    else if (lflag) {
+    802007da:	18088163          	beqz	a7,8020095c <vprintfmt+0x2fc>
+        return va_arg(*ap, unsigned long);
+    802007de:	000a3603          	ld	a2,0(s4)
+    802007e2:	46a9                	li	a3,10
+    802007e4:	8a2e                	mv	s4,a1
+    802007e6:	bfc1                	j	802007b6 <vprintfmt+0x156>
+        switch (ch = *(unsigned char *)fmt ++) {
+    802007e8:	00144603          	lbu	a2,1(s0)
+            altflag = 1;
+    802007ec:	4c85                	li	s9,1
+        switch (ch = *(unsigned char *)fmt ++) {
+    802007ee:	846a                	mv	s0,s10
+            goto reswitch;
+    802007f0:	bdf1                	j	802006cc <vprintfmt+0x6c>
+            putch(ch, putdat);
+    802007f2:	85a6                	mv	a1,s1
+    802007f4:	02500513          	li	a0,37
+    802007f8:	9902                	jalr	s2
+            break;
+    802007fa:	b545                	j	8020069a <vprintfmt+0x3a>
+        switch (ch = *(unsigned char *)fmt ++) {
+    802007fc:	00144603          	lbu	a2,1(s0)
+            lflag ++;
+    80200800:	2885                	addiw	a7,a7,1
+        switch (ch = *(unsigned char *)fmt ++) {
+    80200802:	846a                	mv	s0,s10
+            goto reswitch;
+    80200804:	b5e1                	j	802006cc <vprintfmt+0x6c>
+    if (lflag >= 2) {
+    80200806:	4705                	li	a4,1
+            precision = va_arg(ap, int);
+    80200808:	008a0593          	addi	a1,s4,8
+    if (lflag >= 2) {
+    8020080c:	01174463          	blt	a4,a7,80200814 <vprintfmt+0x1b4>
+    else if (lflag) {
+    80200810:	14088163          	beqz	a7,80200952 <vprintfmt+0x2f2>
+        return va_arg(*ap, unsigned long);
+    80200814:	000a3603          	ld	a2,0(s4)
+    80200818:	46a1                	li	a3,8
+    8020081a:	8a2e                	mv	s4,a1
+    8020081c:	bf69                	j	802007b6 <vprintfmt+0x156>
+            putch('0', putdat);
+    8020081e:	03000513          	li	a0,48
+    80200822:	85a6                	mv	a1,s1
+    80200824:	e03e                	sd	a5,0(sp)
+    80200826:	9902                	jalr	s2
+            putch('x', putdat);
+    80200828:	85a6                	mv	a1,s1
+    8020082a:	07800513          	li	a0,120
+    8020082e:	9902                	jalr	s2
+            num = (unsigned long long)va_arg(ap, void *);
+    80200830:	0a21                	addi	s4,s4,8
+            goto number;
+    80200832:	6782                	ld	a5,0(sp)
+    80200834:	46c1                	li	a3,16
+            num = (unsigned long long)va_arg(ap, void *);
+    80200836:	ff8a3603          	ld	a2,-8(s4)
+            goto number;
+    8020083a:	bfb5                	j	802007b6 <vprintfmt+0x156>
+            if ((p = va_arg(ap, char *)) == NULL) {
+    8020083c:	000a3403          	ld	s0,0(s4)
+    80200840:	008a0713          	addi	a4,s4,8
+    80200844:	e03a                	sd	a4,0(sp)
+    80200846:	14040263          	beqz	s0,8020098a <vprintfmt+0x32a>
+            if (width > 0 && padc != '-') {
+    8020084a:	0fb05763          	blez	s11,80200938 <vprintfmt+0x2d8>
+    8020084e:	02d00693          	li	a3,45
+    80200852:	0cd79163          	bne	a5,a3,80200914 <vprintfmt+0x2b4>
+            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
+    80200856:	00044783          	lbu	a5,0(s0)
+    8020085a:	0007851b          	sext.w	a0,a5
+    8020085e:	cf85                	beqz	a5,80200896 <vprintfmt+0x236>
+    80200860:	00140a13          	addi	s4,s0,1
+                if (altflag && (ch < ' ' || ch > '~')) {
+    80200864:	05e00413          	li	s0,94
+            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
+    80200868:	000c4563          	bltz	s8,80200872 <vprintfmt+0x212>
+    8020086c:	3c7d                	addiw	s8,s8,-1
+    8020086e:	036c0263          	beq	s8,s6,80200892 <vprintfmt+0x232>
+                    putch('?', putdat);
+    80200872:	85a6                	mv	a1,s1
+                if (altflag && (ch < ' ' || ch > '~')) {
+    80200874:	0e0c8e63          	beqz	s9,80200970 <vprintfmt+0x310>
+    80200878:	3781                	addiw	a5,a5,-32
+    8020087a:	0ef47b63          	bgeu	s0,a5,80200970 <vprintfmt+0x310>
+                    putch('?', putdat);
+    8020087e:	03f00513          	li	a0,63
+    80200882:	9902                	jalr	s2
+            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
+    80200884:	000a4783          	lbu	a5,0(s4)
+    80200888:	3dfd                	addiw	s11,s11,-1
+    8020088a:	0a05                	addi	s4,s4,1
+    8020088c:	0007851b          	sext.w	a0,a5
+    80200890:	ffe1                	bnez	a5,80200868 <vprintfmt+0x208>
+            for (; width > 0; width --) {
+    80200892:	01b05963          	blez	s11,802008a4 <vprintfmt+0x244>
+    80200896:	3dfd                	addiw	s11,s11,-1
+                putch(' ', putdat);
+    80200898:	85a6                	mv	a1,s1
+    8020089a:	02000513          	li	a0,32
+    8020089e:	9902                	jalr	s2
+            for (; width > 0; width --) {
+    802008a0:	fe0d9be3          	bnez	s11,80200896 <vprintfmt+0x236>
+            if ((p = va_arg(ap, char *)) == NULL) {
+    802008a4:	6a02                	ld	s4,0(sp)
+    802008a6:	bbd5                	j	8020069a <vprintfmt+0x3a>
+    if (lflag >= 2) {
+    802008a8:	4705                	li	a4,1
+            precision = va_arg(ap, int);
+    802008aa:	008a0c93          	addi	s9,s4,8
+    if (lflag >= 2) {
+    802008ae:	01174463          	blt	a4,a7,802008b6 <vprintfmt+0x256>
+    else if (lflag) {
+    802008b2:	08088d63          	beqz	a7,8020094c <vprintfmt+0x2ec>
+        return va_arg(*ap, long);
+    802008b6:	000a3403          	ld	s0,0(s4)
+            if ((long long)num < 0) {
+    802008ba:	0a044d63          	bltz	s0,80200974 <vprintfmt+0x314>
+            num = getint(&ap, lflag);
+    802008be:	8622                	mv	a2,s0
+    802008c0:	8a66                	mv	s4,s9
+    802008c2:	46a9                	li	a3,10
+    802008c4:	bdcd                	j	802007b6 <vprintfmt+0x156>
+            err = va_arg(ap, int);
+    802008c6:	000a2783          	lw	a5,0(s4)
+            if (err > MAXERROR || (p = error_string[err]) == NULL) {
+    802008ca:	4719                	li	a4,6
+            err = va_arg(ap, int);
+    802008cc:	0a21                	addi	s4,s4,8
+            if (err < 0) {
+    802008ce:	41f7d69b          	sraiw	a3,a5,0x1f
+    802008d2:	8fb5                	xor	a5,a5,a3
+    802008d4:	40d786bb          	subw	a3,a5,a3
+            if (err > MAXERROR || (p = error_string[err]) == NULL) {
+    802008d8:	02d74163          	blt	a4,a3,802008fa <vprintfmt+0x29a>
+    802008dc:	00369793          	slli	a5,a3,0x3
+    802008e0:	97de                	add	a5,a5,s7
+    802008e2:	639c                	ld	a5,0(a5)
+    802008e4:	cb99                	beqz	a5,802008fa <vprintfmt+0x29a>
+                printfmt(putch, putdat, "%s", p);
+    802008e6:	86be                	mv	a3,a5
+    802008e8:	00000617          	auipc	a2,0x0
+    802008ec:	75860613          	addi	a2,a2,1880 # 80201040 <etext+0x610>
+    802008f0:	85a6                	mv	a1,s1
+    802008f2:	854a                	mv	a0,s2
+    802008f4:	0ce000ef          	jal	ra,802009c2 <printfmt>
+    802008f8:	b34d                	j	8020069a <vprintfmt+0x3a>
+                printfmt(putch, putdat, "error %d", err);
+    802008fa:	00000617          	auipc	a2,0x0
+    802008fe:	73660613          	addi	a2,a2,1846 # 80201030 <etext+0x600>
+    80200902:	85a6                	mv	a1,s1
+    80200904:	854a                	mv	a0,s2
+    80200906:	0bc000ef          	jal	ra,802009c2 <printfmt>
+    8020090a:	bb41                	j	8020069a <vprintfmt+0x3a>
+                p = "(null)";
+    8020090c:	00000417          	auipc	s0,0x0
+    80200910:	71c40413          	addi	s0,s0,1820 # 80201028 <etext+0x5f8>
+                for (width -= strnlen(p, precision); width > 0; width --) {
+    80200914:	85e2                	mv	a1,s8
+    80200916:	8522                	mv	a0,s0
+    80200918:	e43e                	sd	a5,8(sp)
+    8020091a:	cadff0ef          	jal	ra,802005c6 <strnlen>
+    8020091e:	40ad8dbb          	subw	s11,s11,a0
+    80200922:	01b05b63          	blez	s11,80200938 <vprintfmt+0x2d8>
+                    putch(padc, putdat);
+    80200926:	67a2                	ld	a5,8(sp)
+    80200928:	00078a1b          	sext.w	s4,a5
+                for (width -= strnlen(p, precision); width > 0; width --) {
+    8020092c:	3dfd                	addiw	s11,s11,-1
+                    putch(padc, putdat);
+    8020092e:	85a6                	mv	a1,s1
+    80200930:	8552                	mv	a0,s4
+    80200932:	9902                	jalr	s2
+                for (width -= strnlen(p, precision); width > 0; width --) {
+    80200934:	fe0d9ce3          	bnez	s11,8020092c <vprintfmt+0x2cc>
+            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
+    80200938:	00044783          	lbu	a5,0(s0)
+    8020093c:	00140a13          	addi	s4,s0,1
+    80200940:	0007851b          	sext.w	a0,a5
+    80200944:	d3a5                	beqz	a5,802008a4 <vprintfmt+0x244>
+                if (altflag && (ch < ' ' || ch > '~')) {
+    80200946:	05e00413          	li	s0,94
+    8020094a:	bf39                	j	80200868 <vprintfmt+0x208>
+        return va_arg(*ap, int);
+    8020094c:	000a2403          	lw	s0,0(s4)
+    80200950:	b7ad                	j	802008ba <vprintfmt+0x25a>
+        return va_arg(*ap, unsigned int);
+    80200952:	000a6603          	lwu	a2,0(s4)
+    80200956:	46a1                	li	a3,8
+    80200958:	8a2e                	mv	s4,a1
+    8020095a:	bdb1                	j	802007b6 <vprintfmt+0x156>
+    8020095c:	000a6603          	lwu	a2,0(s4)
+    80200960:	46a9                	li	a3,10
+    80200962:	8a2e                	mv	s4,a1
+    80200964:	bd89                	j	802007b6 <vprintfmt+0x156>
+    80200966:	000a6603          	lwu	a2,0(s4)
+    8020096a:	46c1                	li	a3,16
+    8020096c:	8a2e                	mv	s4,a1
+    8020096e:	b5a1                	j	802007b6 <vprintfmt+0x156>
+                    putch(ch, putdat);
+    80200970:	9902                	jalr	s2
+    80200972:	bf09                	j	80200884 <vprintfmt+0x224>
+                putch('-', putdat);
+    80200974:	85a6                	mv	a1,s1
+    80200976:	02d00513          	li	a0,45
+    8020097a:	e03e                	sd	a5,0(sp)
+    8020097c:	9902                	jalr	s2
+                num = -(long long)num;
+    8020097e:	6782                	ld	a5,0(sp)
+    80200980:	8a66                	mv	s4,s9
+    80200982:	40800633          	neg	a2,s0
+    80200986:	46a9                	li	a3,10
+    80200988:	b53d                	j	802007b6 <vprintfmt+0x156>
+            if (width > 0 && padc != '-') {
+    8020098a:	03b05163          	blez	s11,802009ac <vprintfmt+0x34c>
+    8020098e:	02d00693          	li	a3,45
+    80200992:	f6d79de3          	bne	a5,a3,8020090c <vprintfmt+0x2ac>
+                p = "(null)";
+    80200996:	00000417          	auipc	s0,0x0
+    8020099a:	69240413          	addi	s0,s0,1682 # 80201028 <etext+0x5f8>
+            for (; (ch = *p ++) != '\0' && (precision < 0 || -- precision >= 0); width --) {
+    8020099e:	02800793          	li	a5,40
+    802009a2:	02800513          	li	a0,40
+    802009a6:	00140a13          	addi	s4,s0,1
+    802009aa:	bd6d                	j	80200864 <vprintfmt+0x204>
+    802009ac:	00000a17          	auipc	s4,0x0
+    802009b0:	67da0a13          	addi	s4,s4,1661 # 80201029 <etext+0x5f9>
+    802009b4:	02800513          	li	a0,40
+    802009b8:	02800793          	li	a5,40
+                if (altflag && (ch < ' ' || ch > '~')) {
+    802009bc:	05e00413          	li	s0,94
+    802009c0:	b565                	j	80200868 <vprintfmt+0x208>
+
+00000000802009c2 <printfmt>:
+printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
+    802009c2:	715d                	addi	sp,sp,-80
+    va_start(ap, fmt);
+    802009c4:	02810313          	addi	t1,sp,40
+printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
+    802009c8:	f436                	sd	a3,40(sp)
+    vprintfmt(putch, putdat, fmt, ap);
+    802009ca:	869a                	mv	a3,t1
+printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...) {
+    802009cc:	ec06                	sd	ra,24(sp)
+    802009ce:	f83a                	sd	a4,48(sp)
+    802009d0:	fc3e                	sd	a5,56(sp)
+    802009d2:	e0c2                	sd	a6,64(sp)
+    802009d4:	e4c6                	sd	a7,72(sp)
+    va_start(ap, fmt);
+    802009d6:	e41a                	sd	t1,8(sp)
+    vprintfmt(putch, putdat, fmt, ap);
+    802009d8:	c89ff0ef          	jal	ra,80200660 <vprintfmt>
+}
+    802009dc:	60e2                	ld	ra,24(sp)
+    802009de:	6161                	addi	sp,sp,80
+    802009e0:	8082                	ret
+
+00000000802009e2 <sbi_console_putchar>:
+uint64_t SBI_REMOTE_SFENCE_VMA_ASID = 7;
+uint64_t SBI_SHUTDOWN = 8;
+
+uint64_t sbi_call(uint64_t sbi_type, uint64_t arg0, uint64_t arg1, uint64_t arg2) {
+    uint64_t ret_val;
+    __asm__ volatile (
+    802009e2:	4781                	li	a5,0
+    802009e4:	00003717          	auipc	a4,0x3
+    802009e8:	61c73703          	ld	a4,1564(a4) # 80204000 <SBI_CONSOLE_PUTCHAR>
+    802009ec:	88ba                	mv	a7,a4
+    802009ee:	852a                	mv	a0,a0
+    802009f0:	85be                	mv	a1,a5
+    802009f2:	863e                	mv	a2,a5
+    802009f4:	00000073          	ecall
+    802009f8:	87aa                	mv	a5,a0
+int sbi_console_getchar(void) {
+    return sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0);
+}
+void sbi_console_putchar(unsigned char ch) {
+    sbi_call(SBI_CONSOLE_PUTCHAR, ch, 0, 0);
+}
+    802009fa:	8082                	ret
+
+00000000802009fc <sbi_set_timer>:
+    __asm__ volatile (
+    802009fc:	4781                	li	a5,0
+    802009fe:	00003717          	auipc	a4,0x3
+    80200a02:	62273703          	ld	a4,1570(a4) # 80204020 <SBI_SET_TIMER>
+    80200a06:	88ba                	mv	a7,a4
+    80200a08:	852a                	mv	a0,a0
+    80200a0a:	85be                	mv	a1,a5
+    80200a0c:	863e                	mv	a2,a5
+    80200a0e:	00000073          	ecall
+    80200a12:	87aa                	mv	a5,a0
+
+void sbi_set_timer(unsigned long long stime_value) {
+    sbi_call(SBI_SET_TIMER, stime_value, 0, 0);
+}
+    80200a14:	8082                	ret
+
+0000000080200a16 <sbi_shutdown>:
+    __asm__ volatile (
+    80200a16:	4781                	li	a5,0
+    80200a18:	00003717          	auipc	a4,0x3
+    80200a1c:	5f073703          	ld	a4,1520(a4) # 80204008 <SBI_SHUTDOWN>
+    80200a20:	88ba                	mv	a7,a4
+    80200a22:	853e                	mv	a0,a5
+    80200a24:	85be                	mv	a1,a5
+    80200a26:	863e                	mv	a2,a5
+    80200a28:	00000073          	ecall
+    80200a2c:	87aa                	mv	a5,a0
+
+
+void sbi_shutdown(void)
+{
+    sbi_call(SBI_SHUTDOWN,0,0,0);
     80200a2e:	8082                	ret

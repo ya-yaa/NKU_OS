@@ -333,6 +333,7 @@ best_fit_check(void) {
     score += 1;
     cprintf("grading: %d / %d points\n",score, sumscore);
     #endif
+    cprintf("passed!");
 }
 //这个结构体在
 const struct pmm_manager best_fit_pmm_manager = {
