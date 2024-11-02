@@ -25,7 +25,7 @@ static void print_ticks() {
 /* idt_init - initialize IDT to each of the entry points in kern/trap/vectors.S
  */
 void idt_init(void) {
-    /* LAB1 YOUR CODE : STEP 2 */
+    /* LAB1 2211421 : STEP 2 */
     /* (1) Where are the entry addrs of each Interrupt Service Routine (ISR)?
      *     All ISR's entry addrs are stored in __vectors. where is uintptr_t
      * __vectors[] ?
@@ -150,6 +150,11 @@ void interrupt_handler(struct trapframe *tf) {
             clock_set_next_event();
             if (++ticks % TICK_NUM == 0) {
                 print_ticks();
+                ticks = 0;
+                ++num;
+            }
+            if(num == 10){
+                sbi_shutdown();
             }
             break;
         case IRQ_H_TIMER:
@@ -187,10 +192,16 @@ void exception_handler(struct trapframe *tf) {
             cprintf("Instruction access fault\n");
             break;
         case CAUSE_ILLEGAL_INSTRUCTION:
-            cprintf("Illegal instruction\n");
+            // 非法指令异常处理
+            cprintf("exception type:Illegal instruction\n");
+            cprintf("Illegal instruction address: 0x%016llx\n", tf->epc);
+            tf->epc += 4;//跳过导致异常的指令
             break;
         case CAUSE_BREAKPOINT:
-            cprintf("Breakpoint\n");
+            //断点异常处理
+            cprintf("exception type:breakpoint\n");
+            cprintf("Illegal instruction address: 0x%016llx\n", tf->epc);
+            tf->epc += 2;//跳过导致异常的指令
             break;
         case CAUSE_MISALIGNED_LOAD:
             cprintf("Load address misaligned\n");
