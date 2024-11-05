@@ -13,6 +13,7 @@
 #include <sbi.h>
 
 #define TICK_NUM 100
+volatile size_t num=0;
 
 static void print_ticks() {
     cprintf("%d ticks\n", TICK_NUM);
