@@ -409,12 +409,13 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
             //addr AND page, setup the
             //map of phy addr <--->
             //logical addr
-            if (page_insert(mm->pgdir, &page, addr, perm) != 0){
+            if (page_insert(mm->pgdir, page, addr, perm) != 0){
                 cprintf("page_insert in do_pgfault failed\n");
                 goto failed;
             }
             //(3) make the page swappable.
-            swap_map_swappable(mm, addr, &page, 0);
+             // 标记页面为可交换
+            swap_map_swappable(mm, addr, page, 1);
 
 
             page->pra_vaddr = addr;

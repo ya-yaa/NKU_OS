@@ -1,0 +1,102 @@
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+(THU.CST) os is loading ...
+
+Special kernel symbols:
+  entry  0xc0200032 (virtual)
+  etext  0xc0204466 (virtual)
+  edata  0xc020a040 (virtual)
+  end    0xc0211574 (virtual)
+Kernel executable memory footprint: 70KB
+memory management: default_pmm_manager
+membegin 80200000 memend 88000000 mem_size 7e00000
+physcial memory map:
+  memory: 0x07e00000, [0x80200000, 0x87ffffff].
+check_alloc_page() succeeded!
+check_pgdir() succeeded!
+check_boot_pgdir() succeeded!
+check_vma_struct() succeeded!
+Store/AMO page fault
+page fault at 0x00000100: K/W
+check_pgfault() succeeded!
+check_vmm() succeeded.
+SWAP: manager = clock swap manager
+BEGIN check_swap: count 2, total 31661
+setup Page Table for vaddr 0X1000, so alloc a page
+setup Page Table vaddr 0~4MB OVER!
+set up init env for check_swap begin!
+Store/AMO page fault
+page fault at 0x00001000: K/W
+Store/AMO page fault
+page fault at 0x00002000: K/W
+Store/AMO page fault
+page fault at 0x00003000: K/W
+Store/AMO page fault
+page fault at 0x00004000: K/W
+set up init env for check_swap over!
+Store/AMO page fault
+page fault at 0x00005000: K/W
+Load page fault
+page fault at 0x00000040: K/R
+not valid addr 40, and  can not find it in vma
+trapframe at 0xffffffffc0208be0
+  zero     0x00000000
+  ra       0xc020307a
+  sp       0xc0208d00
+  gp       0x00000000
+  tp       0x8001be00
+  t0       0xc0200032
+  t1       0xc02110e8
+  t2       0x00000001
+  s0       0x00000000
+  s1       0x00000001
+  a0       0xc0209000
+  a1       0xc0225980
+  a2       0x00000000
+  a3       0x00000001
+  a4       0xc02110e8
+  a5       0x00000000
+  a6       0xc0208d08
+  a7       0xc0211560
+  s2       0xc0452000
+  s3       0xc0211550
+  s4       0x00000001
+  s5       0x00000000
+  s6       0xc0205b80
+  s7       0xc0205b68
+  s8       0xc02062e8
+  s9       0xc0211530
+  s10      0x00000002
+  s11      0xc02259b8
+  t3       0xc0204748
+  t4       0x00000000
+  t5       0xc0225950
+  t6       0x82200000
+  status   0x00046100
+  epc      0xc0203084
+  badvaddr 0x00000040
+  cause    0x0000000d
+kernel panic at kern/trap/trap.c:246:
+    handle pgfault failed. invalid parameter
+
+Welcome to the kernel debug monitor!!
+Type 'help' for a list of commands.
