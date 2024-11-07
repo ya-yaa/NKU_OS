@@ -75,33 +75,35 @@ _clock_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tic
      /* Select the victim */
      //(1)  unlink the  earliest arrival page in front of pra_list_head qeueue
      //(2)  set the addr of addr of this page to ptr_page
-    list_entry_t *entry = list_prev(head);
+    
     while (1) {
-        /*LAB3 EXERCISE 4: YOUR CODE*/ 
+        /*LAB3 EXERCISE 4: 2211849*/ 
         // 编写代码
         // 遍历页面链表pra_list_head，查找最早未被访问的页面
         // 获取当前页面对应的Page结构指针
         // 如果当前页面未被访问，则将该页面从页面链表中删除，并将该页面指针赋值给ptr_page作为换出页面
         // 如果当前页面已被访问，则将visited标志置为0，表示该页面已被重新访问
-        if(entry==head)
-        {
+        list_entry_t *entry = head->prev;
+        
+        if (entry == head) {
             *ptr_page = NULL;
             break;
         }
-        struct Page* page = le2page(entry,pra_page_link);
+        struct Page* page = le2page(entry,pra_page_link);// 获取页面指针
         if(!page->visited)
         {
             list_del(entry);
-            *ptr_page = le2page(entry, pra_page_link); 
+            *ptr_page = page;
             cprintf("curr_ptr %p\n", curr_ptr);
             break;
         }
-        else
+        if (page->visited)
         {
             page->visited =0;
             curr_ptr = entry;
+            
         }
-        entry = list_prev(entry);
+        entry = entry->prev;   
     }
     return 0;
 }
