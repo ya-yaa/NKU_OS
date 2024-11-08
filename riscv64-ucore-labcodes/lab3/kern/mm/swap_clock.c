@@ -168,6 +168,8 @@ _clock_check_swap(void) {
     assert(*(unsigned char *)0x1000 == 0x0a);
     *(unsigned char *)0x1000 = 0x0a;
     assert(pgfault_num==6);
+
+    cprintf("CLOCK test passed!\n");
 #endif
     return 0;
 }
