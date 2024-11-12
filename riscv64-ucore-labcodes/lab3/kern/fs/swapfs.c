@@ -9,7 +9,7 @@
 void
 swapfs_init(void) {
     static_assert((PGSIZE % SECTSIZE) == 0);
-    if (!ide_device_valid(SWAP_DEV_NO)) {
+    if (!ide_device_valid(SWAP_DEV_NO)) {//检查交换设备的有效性
         panic("swap fs isn't available.\n");
     }
     max_swap_offset = ide_device_size(SWAP_DEV_NO) / (PGSIZE / SECTSIZE);

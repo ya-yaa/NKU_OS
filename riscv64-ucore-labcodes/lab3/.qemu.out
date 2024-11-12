@@ -23,7 +23,7 @@ PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
 
 Special kernel symbols:
   entry  0xc0200032 (virtual)
-  etext  0xc0204472 (virtual)
+  etext  0xc0204454 (virtual)
   edata  0xc020a040 (virtual)
   end    0xc0211578 (virtual)
 Kernel executable memory footprint: 70KB
@@ -55,48 +55,24 @@ page fault at 0x00004000: K/W
 set up init env for check_swap over!
 Store/AMO page fault
 page fault at 0x00005000: K/W
+curr_ptr 0xffffffffc02258a8
+swap_out: i 0, store page in vaddr 0x1000 to disk swap entry 2
 Load page fault
-page fault at 0x00000040: K/R
-not valid addr 40, and  can not find it in vma
-trapframe at 0xffffffffc0208be0
-  zero     0x00000000
-  ra       0xc0201e44
-  sp       0xc0208d00
-  gp       0x00000000
-  tp       0x8001be00
-  t0       0xc0200032
-  t1       0xc0211040
-  t2       0x00000001
-  s0       0x00000000
-  s1       0x00000001
-  a0       0xc0209000
-  a1       0xc0225980
-  a2       0x00000000
-  a3       0x00000001
-  a4       0xc0211040
-  a5       0x00000000
-  a6       0xc0208d08
-  a7       0xc0211528
-  s2       0xc0452000
-  s3       0xc0211538
-  s4       0x00000001
-  s5       0x00000000
-  s6       0xc0205640
-  s7       0xc0205628
-  s8       0xc0206310
-  s9       0xc0211560
-  s10      0x00000002
-  s11      0xc02259b8
-  t3       0xc0204758
-  t4       0x00000000
-  t5       0xc0225950
-  t6       0x82200000
-  status   0x00046100
-  epc      0xc0201e4e
-  badvaddr 0x00000040
-  cause    0x0000000d
-kernel panic at kern/trap/trap.c:246:
-    handle pgfault failed. invalid parameter
-
-Welcome to the kernel debug monitor!!
-Type 'help' for a list of commands.
+page fault at 0x00001000: K/R
+curr_ptr 0xffffffffc02258f0
+swap_out: i 0, store page in vaddr 0x2000 to disk swap entry 3
+swap_in: load disk swap entry 2 with swap_page in vadr 0x1000
+CLOCK test passed!
+count is 1, total is 8
+check_swap() succeeded!
+++ setup timer interrupts
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks
+100 ticks

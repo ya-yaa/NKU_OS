@@ -182,8 +182,8 @@ vmm_init(void) {
 static void
 check_vmm(void) {
     size_t nr_free_pages_store = nr_free_pages();
-    check_vma_struct();
-    check_pgfault();
+    check_vma_struct();//检查虚拟内存区域结构是否正确
+    check_pgfault();//检查错误处理机制的正确性
 
     nr_free_pages_store--;	// szx : Sv39三级页表多占一个内存页，所以执行此操作
     assert(nr_free_pages_store == nr_free_pages());
@@ -193,14 +193,15 @@ check_vmm(void) {
 
 static void
 check_vma_struct(void) {
-    size_t nr_free_pages_store = nr_free_pages();
+    size_t nr_free_pages_store = nr_free_pages();//获取当前系统中可用的空闲页面数量
 
-    struct mm_struct *mm = mm_create();
+    struct mm_struct *mm = mm_create();//创建一个新的内存管理结构 mm
     assert(mm != NULL);
 
     int step1 = 10, step2 = step1 * 10;
 
     int i;
+    //每次创建一个新的 VMA 结构，并插入到内存管理结构 mm 中。
     for (i = step1; i >= 1; i --) {
         struct vma_struct *vma = vma_create(i * 5, i * 5 + 2, 0);
         assert(vma != NULL);
@@ -213,6 +214,7 @@ check_vma_struct(void) {
         insert_vma_struct(mm, vma);
     }
 
+    //验证 VMA 结构的顺序
     list_entry_t *le = list_next(&(mm->mmap_list));
 
     for (i = 1; i <= step2; i ++) {
@@ -238,6 +240,7 @@ check_vma_struct(void) {
         assert(vma2->vm_start == i  && vma2->vm_end == i  + 2);
     }
 
+    //验证地址小于 5 的情况
     for (i =4; i>=0; i--) {
         struct vma_struct *vma_below_5= find_vma(mm,i);
         if (vma_below_5 != NULL ) {
@@ -246,8 +249,9 @@ check_vma_struct(void) {
         assert(vma_below_5 == NULL);
     }
 
+    //销毁内存管理结构
     mm_destroy(mm);
-
+    //验证空闲页面数
     assert(nr_free_pages_store == nr_free_pages());
 
     cprintf("check_vma_struct() succeeded!\n");
@@ -260,23 +264,24 @@ static void
 check_pgfault(void) {
 	// char *name = "check_pgfault";
     size_t nr_free_pages_store = nr_free_pages();
-
+    //创建内存管理结构
     check_mm_struct = mm_create();
 
     assert(check_mm_struct != NULL);
     struct mm_struct *mm = check_mm_struct;
+    //设置页目录
     pde_t *pgdir = mm->pgdir = boot_pgdir;
     assert(pgdir[0] == 0);
-
+    //创建并插入 VMA 结构
     struct vma_struct *vma = vma_create(0, PTSIZE, VM_WRITE);
 
     assert(vma != NULL);
 
     insert_vma_struct(mm, vma);
-
+    //验证 VMA 结构
     uintptr_t addr = 0x100;
     assert(find_vma(mm, addr) == vma);
-
+    //写入数据并验证
     int i, sum = 0;
     for (i = 0; i < 100; i ++) {
         *(char *)(addr + i) = i;
@@ -331,8 +336,9 @@ int
 do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
     int ret = -E_INVAL;
     //try to find a vma which include addr
+    //查找包含地址的VMA结构
     struct vma_struct *vma = find_vma(mm, addr);
-
+    //统计页错误次数
     pgfault_num++;
     //If the addr is in the range of a mm's vma?
     if (vma == NULL || vma->vm_start > addr) {
@@ -346,6 +352,7 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
      * THEN
      *    continue process
      */
+    //设置权限，对其地址
     uint32_t perm = PTE_U;
     if (vma->vm_flags & VM_WRITE) {
         perm |= (PTE_R | PTE_W);
@@ -373,11 +380,12 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
     *
     */
 
-
+   //获取页表条目的指针 
     ptep = get_pte(mm->pgdir, addr, 1);  //(1) try to find a pte, if pte's
                                          //PT(Page Table) isn't existed, then
                                          //create a PT.
     if (*ptep == 0) {
+        //分配一个页面并设置映射关系
         if (pgdir_alloc_page(mm->pgdir, addr, perm) == NULL) {
             cprintf("pgdir_alloc_page in do_pgfault failed\n");
             goto failed;
@@ -401,6 +409,7 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
             //(1）According to the mm AND addr, try
             //to load the content of right disk page
             //into the memory which page managed.
+            //分配一个页面并从交换分区加载数据
             if (swap_in(mm, addr, &page) != 0 ){
                 cprintf("swap_in in do_pgfault failed\n");
                 goto failed;
@@ -409,18 +418,19 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
             //addr AND page, setup the
             //map of phy addr <--->
             //logical addr
+            //建立页面的物理地址与虚拟地址之间的映射关系
             if (page_insert(mm->pgdir, page, addr, perm) != 0){
                 cprintf("page_insert in do_pgfault failed\n");
                 goto failed;
             }
             //(3) make the page swappable.
              // 标记页面为可交换
-            swap_map_swappable(mm, addr, page, 1);
+            swap_map_swappable(mm, addr, page, 0);
 
-
+            //设置页面的虚拟地址 
             page->pra_vaddr = addr;
         } else {
-            cprintf("no swap_init_ok but ptep is %x, failed\n", *ptep);
+            cprintf("no swap设置页面的虚拟地址 _init_ok but ptep is %x, failed\n", *ptep);
             goto failed;
         }
    }

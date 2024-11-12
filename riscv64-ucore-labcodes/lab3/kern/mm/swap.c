@@ -32,7 +32,7 @@ static void check_swap(void);
 int
 swap_init(void)
 {
-     swapfs_init();
+     swapfs_init();//初始化交换文件系统，负责设置交换分区的基本结构和参数。
 
      // Since the IDE is faked, it can only store 7 pages at most to pass the test
      if (!(7 <= max_swap_offset &&
@@ -40,9 +40,9 @@ swap_init(void)
         panic("bad max_swap_offset %08x.\n", max_swap_offset);
      }
 
-     //sm = &swap_manager_clock;//use first in first out Page Replacement Algorithm
-     sm = &swap_manager_lru;
-     int r = sm->init();
+     sm = &swap_manager_clock;//use first in first out Page Replacement Algorithm
+     //sm = &swap_manager_lru;
+     int r = sm->init();//初始化选定的页面替换算法
      
      if (r == 0)
      {

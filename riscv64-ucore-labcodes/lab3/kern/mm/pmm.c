@@ -244,15 +244,20 @@ pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create) {
      *   PTE_U           0x004                   // page table/directory entry
      * flags bit : User can access
      */
+    //获取一级页目录条目
     pde_t *pdep1 = &pgdir[PDX1(la)];
     if (!(*pdep1 & PTE_V)) {
         struct Page *page;
+        //分配新的页面
         if (!create || (page = alloc_page()) == NULL) {
             return NULL;
         }
+        //设置页面引用计数
         set_page_ref(page, 1);
+        //获取物理地址并清零
         uintptr_t pa = page2pa(page);
         memset(KADDR(pa), 0, PGSIZE);
+        //更新一级页目录条目
         *pdep1 = pte_create(page2ppn(page), PTE_U | PTE_V);
     }
     pde_t *pdep0 = &((pde_t *)KADDR(PDE_ADDR(*pdep1)))[PDX0(la)];
@@ -268,6 +273,7 @@ pte_t *get_pte(pde_t *pgdir, uintptr_t la, bool create) {
  //   	memset(pa, 0, PGSIZE);
     	*pdep0 = pte_create(page2ppn(page), PTE_U | PTE_V);
     }
+    //将物理地址转换为内核虚拟地址，并获取对应的页表条目指针返回
     return &((pte_t *)KADDR(PDE_ADDR(*pdep0)))[PTX(la)];
 }
 
@@ -344,11 +350,11 @@ int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm) {
     if (ptep == NULL) {
         return -E_NO_MEM;
     }
-    page_ref_inc(page);
+    page_ref_inc(page);//增加一次引用
     if (*ptep & PTE_V) {
         struct Page *p = pte2page(*ptep);
         if (p == page) {
-            page_ref_dec(page);
+            page_ref_dec(page);//减少一次引用
         } else {
             page_remove_pte(pgdir, la, ptep);
         }
