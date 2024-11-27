@@ -162,8 +162,9 @@ get_pid(void) {
 // NOTE: before call switch_to, should load  base addr of "proc"'s new PDT
 void
 proc_run(struct proc_struct *proc) {
-    if (proc != current) {
-        // LAB4:EXERCISE3 YOUR CODE
+    //检查要切换的进程是否与当前正在运行的进程相同，如果相同则不需要切换
+    if (proc != current) { 
+        // LAB4:EXERCISE3 2211421
         /*
         * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
         * MACROs or Functions:
@@ -172,7 +173,19 @@ proc_run(struct proc_struct *proc) {
         *   lcr3():                   Modify the value of CR3 register
         *   switch_to():              Context switching between two processes
         */
-       
+    
+        bool intr_flag; // 定义用于保存中断状态的变量
+        struct proc_struct *prev = current, *next = proc; // 记录当前进程和即将运行的进程
+        local_intr_save(intr_flag); // 禁用中断以保护上下文切换过程
+        {
+            // 将当前进程更新为要运行的进程
+            current = proc;
+            // 切换页表 加载新进程的页目录表到CR3寄存器并切换地址空间
+            lcr3(next->cr3);
+            // 执行上下文切换，切换到新进程
+            switch_to(&(prev->context), &(next->context));
+        }
+        local_intr_restore(intr_flag); // 恢复之前的中断状态
     }
 }
 
