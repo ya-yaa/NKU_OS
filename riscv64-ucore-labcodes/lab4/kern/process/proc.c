@@ -282,10 +282,51 @@ int
 do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     int ret = -E_NO_FREE_PROC;
     struct proc_struct *proc;
+
+    // 检查当前进程数 nr_process 是否超过了系统的最大进程数 MAX_PROCESS
     if (nr_process >= MAX_PROCESS) {
         goto fork_out;
     }
+
     ret = -E_NO_MEM;
+    // 为新进程分配一个 proc_struct 结构
+    proc = alloc_proc();
+    if (!proc) {
+        goto fork_out;
+    }
+
+    proc->parent = current;//将子进程的父节点设置为当前进程
+
+     // 为新进程分配内核栈
+    if (!setup_kstack(proc)) {
+        goto bad_fork_cleanup_proc;
+    }
+
+    // 调用copy_mm()函数复制父进程的内存信息到子进程
+    proc->mm = copy_mm(clone_flags, proc);
+    if (!proc->mm) {
+        goto bad_fork_cleanup_kstack;
+    }
+    
+    // 调用copy_thread()函数复制父进程的中断帧和上下文信息
+    copy_thread(proc, stack, tf);
+
+    //将新进程添加到进程的（hash）列表中
+    bool intr_flag;
+    local_intr_save(intr_flag);//屏蔽中断，intr_flag置为1
+
+    proc->pid = get_pid();//获取当前进程PID
+    hash_proc(proc); //建立hash映射
+    list_add(&proc_list, &(proc->list_link));//加入进程链表
+    nr_process ++;//进程数加一
+
+    local_intr_restore(intr_flag);//恢复中断
+
+    // 设置新进程的状态为 PROC_RUNNABLE，表示它可以被调度执行
+    wakeup_proc(proc);
+
+    // 成功创建进程后，返回新进程的 PID
+    ret = proc->pid;
     //LAB4:EXERCISE2 YOUR CODE
     /*
      * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
