@@ -309,15 +309,12 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     proc->parent = current;//将子进程的父节点设置为当前进程
 
      // 为新进程分配内核栈
-    if (!setup_kstack(proc)) {
-        goto bad_fork_cleanup_proc;
-    }
+    if (setup_kstack(proc))
+        goto bad_fork_cleanup_kstack;
 
     // 调用copy_mm()函数复制父进程的内存信息到子进程
-    proc->mm = copy_mm(clone_flags, proc);
-    if (!proc->mm) {
-        goto bad_fork_cleanup_kstack;
-    }
+    if (copy_mm(clone_flags, proc))
+        goto bad_fork_cleanup_proc;
     
     // 调用copy_thread()函数复制父进程的中断帧和上下文信息
     copy_thread(proc, stack, tf);
@@ -356,7 +353,7 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
      *   nr_process:   the number of process set
      */
 
-    //    1. call alloc_proc to allocate a proc_struct
+    //    1. call alloc_proc to allocatif (!setup_kstack(proc)) 
     //    2. call setup_kstack to allocate a kernel stack for child process
     //    3. call copy_mm to dup OR share mm according clone_flag
     //    4. call copy_thread to setup tf & context in proc_struct
