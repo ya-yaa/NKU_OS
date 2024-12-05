@@ -112,7 +112,7 @@ alloc_proc(void) {
         proc->mm = NULL;
         memset(&(proc->context), 0, sizeof(struct context));
         proc->tf = NULL;
-        proc->cr3 = boot_cr3;
+        proc->cr3 = boot_cr3;//内核页目录表基址
         proc->flags = 0;
         memset(proc->name, 0, PROC_NAME_LEN + 1);
     }
@@ -137,23 +137,26 @@ get_proc_name(struct proc_struct *proc) {
 // get_pid - alloc a unique pid for process
 static int
 get_pid(void) {
-    static_assert(MAX_PID > MAX_PROCESS);
+    static_assert(MAX_PID > MAX_PROCESS);//保证有足够的PID空间来分配给所有可能的进程
     struct proc_struct *proc;
     list_entry_t *list = &proc_list, *le;
+    //next_safe 用于记录下一个安全的PID,last_pid 用于记录上一次分配的PID(初始化为 MAX_PID，表示尚未分配过PID)
     static int next_safe = MAX_PID, last_pid = MAX_PID;
+    //尝试将 last_pid 增加1。如果 last_pid 达到了 MAX_PID，则将其重置为1，并跳转到标签 inside
     if (++ last_pid >= MAX_PID) {
         last_pid = 1;
         goto inside;
     }
     if (last_pid >= next_safe) {
     inside:
-        next_safe = MAX_PID;
+        next_safe = MAX_PID;//重置 next_safe 为 MAX_PID
     repeat:
         le = list;
+        //从头开始遍历进程列表 proc_list，尝试找到一个未被使用的PID
         while ((le = list_next(le)) != list) {
             proc = le2proc(le, list_link);
-            if (proc->pid == last_pid) {
-                if (++ last_pid >= next_safe) {
+            if (proc->pid == last_pid) {//如果当前进程的 pid 等于 last_pid，则说明这个PID已经被占用
+                if (++ last_pid >= next_safe) {//此时增加 last_pid 并再次检查是否需要重新开始查找
                     if (last_pid >= MAX_PID) {
                         last_pid = 1;
                     }
@@ -161,12 +164,13 @@ get_pid(void) {
                     goto repeat;
                 }
             }
+            //如果当前进程的 pid 大于 last_pid 且小于 next_safe
             else if (proc->pid > last_pid && next_safe > proc->pid) {
-                next_safe = proc->pid;
+                next_safe = proc->pid;//则更新 next_safe 为当前进程的 pid，以确保找到一个更小的安全PID
             }
         }
     }
-    return last_pid;
+    return last_pid;//返回最终找到的未被使用的 last_pid 作为新的PID
 }
 
 // proc_run - make process "proc" running on cpu
@@ -234,12 +238,13 @@ find_proc(int pid) {
 //       proc->tf in do_fork-->copy_thread function
 int
 kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags) {
-    struct trapframe tf;
+    struct trapframe tf;//程序上下文
     memset(&tf, 0, sizeof(struct trapframe));
-    tf.gpr.s0 = (uintptr_t)fn;
-    tf.gpr.s1 = (uintptr_t)arg;
+    tf.gpr.s0 = (uintptr_t)fn;//s0保存函数指针
+    tf.gpr.s1 = (uintptr_t)arg;//s1保存函数参数
+    //特权级别切换，保留中断使能状态，禁用中断
     tf.status = (read_csr(sstatus) | SSTATUS_SPP | SSTATUS_SPIE) & ~SSTATUS_SIE;
-    tf.epc = (uintptr_t)kernel_thread_entry;
+    tf.epc = (uintptr_t)kernel_thread_entry;//入口点设置为kernel_thread_entry
     return do_fork(clone_flags | CLONE_VM, 0, &tf);
 }
 
@@ -273,14 +278,17 @@ copy_mm(uint32_t clone_flags, struct proc_struct *proc) {
 //             - setup the kernel entry point and stack of process
 static void
 copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf) {
+    //内核栈上分配一段空间保存tf
     proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE - sizeof(struct trapframe));
     *(proc->tf) = *tf;
 
     // Set a0 to 0 so a child process knows it's just forked
     proc->tf->gpr.a0 = 0;
+    //如果 esp 为 0，意味着没有提供特定的用户栈地址，因此使用内核栈上的 trapframe 地址作为栈指针
+    //否则，使用提供的 esp 作为栈指针，这通常是父进程的用户栈地址，以便子进程可以继承父进程的用户栈
     proc->tf->gpr.sp = (esp == 0) ? (uintptr_t)proc->tf : esp;
 
-    proc->context.ra = (uintptr_t)forkret;
+    proc->context.ra = (uintptr_t)forkret;//设置返回地址为forkret
     proc->context.sp = (uintptr_t)(proc->tf);
 }
 
@@ -397,12 +405,12 @@ void
 proc_init(void) {
     int i;
 
-    list_init(&proc_list);
+    list_init(&proc_list);//进程链表
     for (i = 0; i < HASH_LIST_SIZE; i ++) {
         list_init(hash_list + i);
     }
 
-    if ((idleproc = alloc_proc()) == NULL) {
+    if ((idleproc = alloc_proc()) == NULL) {//分配新的进程结构体
         panic("cannot alloc idleproc.\n");
     }
 
@@ -426,19 +434,19 @@ proc_init(void) {
     
     idleproc->pid = 0;
     idleproc->state = PROC_RUNNABLE;
-    idleproc->kstack = (uintptr_t)bootstack;
+    idleproc->kstack = (uintptr_t)bootstack;//内核栈起始地址
     idleproc->need_resched = 1;
     set_proc_name(idleproc, "idle");
     nr_process ++;
 
     current = idleproc;
 
-    int pid = kernel_thread(init_main, "Hello world!!", 0);
+    int pid = kernel_thread(init_main, "Hello world!!", 0);//创建新的内核进程
     if (pid <= 0) {
         panic("create init_main failed.\n");
     }
 
-    initproc = find_proc(pid);
+    initproc = find_proc(pid);//查找刚才创建的新进程
     set_proc_name(initproc, "init");
 
     assert(idleproc != NULL && idleproc->pid == 0);
