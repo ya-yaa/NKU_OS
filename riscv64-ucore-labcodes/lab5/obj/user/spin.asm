@@ -498,7 +498,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap) 
   800234:	4825                	li	a6,9
         switch (ch = *(unsigned char *)fmt ++) {
   800236:	fdd6059b          	addiw	a1,a2,-35
-  80023a:	0ff5f593          	andi	a1,a1,255
+  80023a:	0ff5f593          	zext.b	a1,a1
   80023e:	00140d13          	addi	s10,s0,1
   800242:	04b56263          	bltu	a0,a1,800286 <vprintfmt+0xbc>
   800246:	058a                	slli	a1,a1,0x2
@@ -535,7 +535,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap) 
   800274:	846a                	mv	s0,s10
   800276:	00140d13          	addi	s10,s0,1
   80027a:	fdd6059b          	addiw	a1,a2,-35
-  80027e:	0ff5f593          	andi	a1,a1,255
+  80027e:	0ff5f593          	zext.b	a1,a1
   800282:	fcb572e3          	bgeu	a0,a1,800246 <vprintfmt+0x7c>
             putch('%', putdat);
   800286:	85a6                	mv	a1,s1
