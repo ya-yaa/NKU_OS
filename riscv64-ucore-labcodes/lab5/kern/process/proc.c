@@ -116,6 +116,10 @@ alloc_proc(void) {
         proc->cr3 = boot_cr3;
         proc->flags = 0;
         memset(proc->name, 0, PROC_NAME_LEN + 1);
+        proc->wait_state = 0;
+        proc->cptr = NULL; //当前进程的子进程
+        proc->optr = NULL; // 当前进程的上一个兄弟进程
+        proc->yptr = NULL; // 当前进程的下一个兄弟进程
       
 
      //LAB5 YOUR CODE : (update LAB4 steps)
@@ -146,13 +150,14 @@ get_proc_name(struct proc_struct *proc) {
 // set_links - set the relation links of process
 static void
 set_links(struct proc_struct *proc) {
-    list_add(&proc_list, &(proc->list_link));
-    proc->yptr = NULL;
-    if ((proc->optr = proc->parent->cptr) != NULL) {
-        proc->optr->yptr = proc;
+    list_add(&proc_list, &(proc->list_link));//这行代码将当前进程 proc 插入到进程列表 proc_list 中
+    proc->yptr = NULL;//将当前进程的下一个兄弟进程字段设置为 NULL
+    if ((proc->optr = proc->parent->cptr) != NULL) { //将新进程的上一个兄弟进程字段指向其父进程的 cptr 字段
+        //父进程有其他子进程
+        proc->optr->yptr = proc;//该子进程的 yptr 设置为当前进程 proc，形成兄弟链
     }
-    proc->parent->cptr = proc;
-    nr_process ++;
+    proc->parent->cptr = proc;//父进程指向这个子进程
+    nr_process ++;//进程数加1
 }
 
 // remove_links - clean the relation links of process
@@ -422,7 +427,7 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
     }
 
     proc->parent = current;//将子进程的父节点设置为当前进程
-
+    assert(current->wait_state == 0);
      // 为新进程分配内核栈
     if (setup_kstack(proc))
         goto bad_fork_cleanup_kstack;
@@ -440,8 +445,9 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
 
     proc->pid = get_pid();//获取当前进程PID
     hash_proc(proc); //建立hash映射
-    list_add(&proc_list, &(proc->list_link));//加入进程链表
-    nr_process ++;//进程数加一
+    //list_add(&proc_list, &(proc->list_link));//加入进程链表
+    set_links(proc);//设置进程之间的关系链接
+    //nr_process ++;//进程数加一
 
     local_intr_restore(intr_flag);//恢复中断
 

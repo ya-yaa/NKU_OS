@@ -344,33 +344,40 @@ void exit_range(pde_t *pgdir, uintptr_t start, uintptr_t end) {
  *
  * CALL GRAPH: copy_mm-->dup_mmap-->copy_range
  */
+//将 from 进程的指定地址区间 [start, end] 的页面内容复制到 to 进程中
+/*pde_t *to：目标进程的页目录指针。
+pde_t *from：源进程的页目录指针。
+uintptr_t start：复制区域的起始地址。
+uintptr_t end：复制区域的结束地址。
+bool share：是否共享页表项的标志。*/
 int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end,
-               bool share) {
-    assert(start % PGSIZE == 0 && end % PGSIZE == 0);
+               bool share) {               
+    assert(start % PGSIZE == 0 && end % PGSIZE == 0);//确保 start 和 end 都是页对齐的
     assert(USER_ACCESS(start, end));
     // copy content by page unit.
     do {
         // call get_pte to find process A's pte according to the addr start
-        pte_t *ptep = get_pte(from, start, 0), *nptep;
+        pte_t *ptep = get_pte(from, start, 0), *nptep;//获取源进程 from 在 start 地址的页表项
         if (ptep == NULL) {
-            start = ROUNDDOWN(start + PTSIZE, PTSIZE);
+            start = ROUNDDOWN(start + PTSIZE, PTSIZE);//继续检查下一个地址区域
             continue;
         }
         // call get_pte to find process B's pte according to the addr start. If
         // pte is NULL, just alloc a PT
-        if (*ptep & PTE_V) {
+        if (*ptep & PTE_V) {//指向的页表项有效
+        //在目标进程 to 的页表中查找对应的页表项。如果页表项不存在，分配一个新的页表并返回指向该页表项的指针
             if ((nptep = get_pte(to, start, 1)) == NULL) {
                 return -E_NO_MEM;
             }
-            uint32_t perm = (*ptep & PTE_USER);
+            uint32_t perm = (*ptep & PTE_USER);//获取源页表项的权限标志：可供用户空间访问
             // get page from ptep
-            struct Page *page = pte2page(*ptep);
+            struct Page *page = pte2page(*ptep);//通过源页表项获取对应的物理页面结构体
             // alloc a page for process B
-            struct Page *npage = alloc_page();
+            struct Page *npage = alloc_page();//为目标进程分配一个新的页面
             assert(page != NULL);
             assert(npage != NULL);
             int ret = 0;
-            /* LAB5:EXERCISE2 YOUR CODE
+            /* LAB5:EXERCISE2 2211849
              * replicate content of page to npage, build the map of phy addr of
              * nage with the linear addr start
              *
@@ -388,7 +395,10 @@ int copy_range(pde_t *to, pde_t *from, uintptr_t start, uintptr_t end,
              * (3) memory copy from src_kvaddr to dst_kvaddr, size is PGSIZE
              * (4) build the map of phy addr of  nage with the linear addr start
              */
-
+            uintptr_t* src_kvaddr = page2kva(page);//获取源页面的内核虚拟地址
+            uintptr_t* dst_kvaddr = page2kva(npage);//获取目标页面的内核虚拟地址
+            memcpy(dst_kvaddr, *src_kvaddr, PGSIZE);//将源页面的内容复制到目标页面
+            ret = page_insert(to, npage, start, perm);//将目标页的物理地址与目标进程的线性地址（start）映射
 
             assert(ret == 0);
         }
