@@ -175,7 +175,7 @@ void
 proc_run(struct proc_struct *proc) {
     //检查要切换的进程是否与当前正在运行的进程相同，如果相同则不需要切换
     if (proc != current) { 
-        // LAB4:EXERCISE3 2211421
+         // LAB4:EXERCISE3 2211421
         /*
         * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
         * MACROs or Functions:

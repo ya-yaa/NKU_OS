@@ -435,7 +435,7 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
             goto failed;
         }
     } else {
-        /*LAB3 EXERCISE 3: YOUR CODE
+        /*LAB3 EXERCISE 3: 2211532
         * 请你根据以下信息提示，补充函数
         * 现在我们认为pte是一个交换条目，那我们应该从磁盘加载数据并放到带有phy addr的页面，
         * 并将phy addr与逻辑addr映射，触发交换管理器记录该页面的访问情况
@@ -447,20 +447,34 @@ do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr) {
         *    page_insert ： 建立一个Page的phy addr与线性addr la的映射
         *    swap_map_swappable ： 设置页面可交换
         */
-        if (swap_init_ok) {
+         if (swap_init_ok) {
             struct Page *page = NULL;
             // 你要编写的内容在这里，请基于上文说明以及下文的英文注释完成代码编写
             //(1）According to the mm AND addr, try
             //to load the content of right disk page
             //into the memory which page managed.
+            //分配一个页面并从交换分区加载数据
+            if (swap_in(mm, addr, &page) != 0 ){
+                cprintf("swap_in in do_pgfault failed\n");
+                goto failed;
+            }
             //(2) According to the mm,
             //addr AND page, setup the
             //map of phy addr <--->
             //logical addr
+            //建立页面的物理地址与虚拟地址之间的映射关系
+            if (page_insert(mm->pgdir, page, addr, perm) != 0){
+                cprintf("page_insert in do_pgfault failed\n");
+                goto failed;
+            }
             //(3) make the page swappable.
+             // 标记页面为可交换
+            swap_map_swappable(mm, addr, page, 0);
+
+            //设置页面的虚拟地址 
             page->pra_vaddr = addr;
         } else {
-            cprintf("no swap_init_ok but ptep is %x, failed\n", *ptep);
+            cprintf("no swap设置页面的虚拟地址 _init_ok but ptep is %x, failed\n", *ptep);
             goto failed;
         }
    }
