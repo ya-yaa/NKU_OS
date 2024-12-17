@@ -104,6 +104,24 @@ alloc_proc(void) {
      *       char name[PROC_NAME_LEN + 1];               // Process name
      */
 
+        proc->state = PROC_UNINIT;
+        proc->pid = -1;
+        proc->runs = 0;
+        proc->kstack = 0;
+        proc->need_resched = 0;
+        proc->parent = NULL;
+        proc->mm = NULL;
+        memset(&(proc->context), 0, sizeof(struct context));
+        proc->tf = NULL;
+        proc->cr3 = boot_cr3;
+        proc->flags = 0;
+        memset(proc->name, 0, PROC_NAME_LEN + 1);
+        proc->wait_state = 0;
+        proc->cptr = NULL; //当前进程的子进程
+        proc->optr = NULL; // 当前进程的上一个兄弟进程
+        proc->yptr = NULL; // 当前进程的下一个兄弟进程
+      
+
      //LAB5 YOUR CODE : (update LAB4 steps)
      /*
      * below fields(add in LAB5) in proc_struct need to be initialized  
@@ -132,13 +150,14 @@ get_proc_name(struct proc_struct *proc) {
 // set_links - set the relation links of process
 static void
 set_links(struct proc_struct *proc) {
-    list_add(&proc_list, &(proc->list_link));
-    proc->yptr = NULL;
-    if ((proc->optr = proc->parent->cptr) != NULL) {
-        proc->optr->yptr = proc;
+    list_add(&proc_list, &(proc->list_link));//这行代码将当前进程 proc 插入到进程列表 proc_list 中
+    proc->yptr = NULL;//将当前进程的下一个兄弟进程字段设置为 NULL
+    if ((proc->optr = proc->parent->cptr) != NULL) { //将新进程的上一个兄弟进程字段指向其父进程的 cptr 字段
+        //父进程有其他子进程
+        proc->optr->yptr = proc;//该子进程的 yptr 设置为当前进程 proc，形成兄弟链
     }
-    proc->parent->cptr = proc;
-    nr_process ++;
+    proc->parent->cptr = proc;//父进程指向这个子进程
+    nr_process ++;//进程数加1
 }
 
 // remove_links - clean the relation links of process
@@ -197,7 +216,7 @@ get_pid(void) {
 void
 proc_run(struct proc_struct *proc) {
     if (proc != current) {
-        // LAB4:EXERCISE3 YOUR CODE
+        // LAB4:EXERCISE3 2211421
         /*
         * Some Useful MACROs, Functions and DEFINEs, you can use them in below implementation.
         * MACROs or Functions:
@@ -206,6 +225,20 @@ proc_run(struct proc_struct *proc) {
         *   lcr3():                   Modify the value of CR3 register
         *   switch_to():              Context switching between two processes
         */
+
+
+        bool intr_flag; // 定义用于保存中断状态的变量
+        struct proc_struct *prev = current, *next = proc; // 记录当前进程和即将运行的进程
+        local_intr_save(intr_flag); // 禁用中断以保护上下文切换过程
+        {
+            // 将当前进程更新为要运行的进程
+            current = proc;
+            // 切换页表 加载新进程的页目录表到CR3寄存器并切换地址空间
+            lcr3(next->cr3);
+            // 执行上下文切换，切换到新进程
+            switch_to(&(prev->context), &(next->context));
+        }
+        local_intr_restore(intr_flag); // 恢复之前的中断状态
 
     }
 }
@@ -386,6 +419,43 @@ do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf) {
      *   proc_list:    the process set's list
      *   nr_process:   the number of process set
      */
+
+      // 为新进程分配一个 proc_struct 结构
+    proc = alloc_proc();
+    if (!proc) {
+        goto fork_out;
+    }
+
+    proc->parent = current;//将子进程的父节点设置为当前进程
+    assert(current->wait_state == 0);
+     // 为新进程分配内核栈
+    if (setup_kstack(proc))
+        goto bad_fork_cleanup_kstack;
+
+    // 调用copy_mm()函数复制父进程的内存信息到子进程
+    if (copy_mm(clone_flags, proc))
+        goto bad_fork_cleanup_proc;
+    
+    // 调用copy_thread()函数复制父进程的中断帧和上下文信息
+    copy_thread(proc, stack, tf);
+
+    //将新进程添加到进程的（hash）列表中
+    bool intr_flag;
+    local_intr_save(intr_flag);//屏蔽中断，intr_flag置为1
+
+    proc->pid = get_pid();//获取当前进程PID
+    hash_proc(proc); //建立hash映射
+    //list_add(&proc_list, &(proc->list_link));//加入进程链表
+    set_links(proc);//设置进程之间的关系链接
+    //nr_process ++;//进程数加一
+
+    local_intr_restore(intr_flag);//恢复中断
+
+    // 设置新进程的状态为 PROC_RUNNABLE，表示它可以被调度执行
+    wakeup_proc(proc);
+
+    // 成功创建进程后，返回新进程的 PID
+    ret = proc->pid;
 
     //    1. call alloc_proc to allocate a proc_struct
     //    2. call setup_kstack to allocate a kernel stack for child process
@@ -603,7 +673,9 @@ load_icode(unsigned char *binary, size_t size) {
      *          tf->status should be appropriate for user program (the value of sstatus)
      *          hint: check meaning of SPP, SPIE in SSTATUS, use them by SSTATUS_SPP, SSTATUS_SPIE(defined in risv.h)
      */
-
+    tf->gpr.sp = USTACKTOP;
+    tf->epc = elf->e_entry;
+    tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
 
     ret = 0;
 out:
